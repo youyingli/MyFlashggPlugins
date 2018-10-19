@@ -1,32 +1,27 @@
-# Prerequisites
-*.d
+# Editors temp files
+*.swp
+*~
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# SCRAM business
+__init__.py
+*.pyc
 
-# Precompiled Headers
-*.gch
-*.pch
+# CRAB3 stuff
+crab_*
+crabConfig_*
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# ROOT-related files
+*.root
+*_cc.d
+*_cc.so
+*_C.d
+*_C.so
+*\#*
+.\#*
+AutoDict_*
 
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# Other temp files
+*.txt
+*.log
+*.png
+*.pdf
