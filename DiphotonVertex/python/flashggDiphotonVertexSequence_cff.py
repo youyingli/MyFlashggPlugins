@@ -1,5 +1,5 @@
 import FWCore.ParameterSet.Config as cms
-from flashggDiphotonVtxPlugins.Validation.flashggTkVtxMapValidation_cfi import flashggVertexMapUnique,flashggVertexMapNonUnique
+from MyFlashggPlugins.DiphotonVertex.flashggTkVtxMapValidation_cfi import flashggVertexMapUnique,flashggVertexMapNonUnique
 
 from flashgg.MicroAOD.flashggPhotons_cfi import flashggPhotons
 from flashgg.MicroAOD.flashggRandomizedPhotonProducer_cff import flashggRandomizedPhotons

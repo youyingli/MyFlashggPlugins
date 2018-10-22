@@ -50,11 +50,11 @@ using namespace flashgg;
 
 // **********************************************************************
 
-class ConvertedPhotonResoTreeMakerV2 : public edm::EDAnalyzer
+class ConvertedPhotonResoTreeMaker : public edm::EDAnalyzer
 {
 public:
-    explicit ConvertedPhotonResoTreeMakerV2( const edm::ParameterSet & );
-    ~ConvertedPhotonResoTreeMakerV2();
+    explicit ConvertedPhotonResoTreeMaker( const edm::ParameterSet & );
+    ~ConvertedPhotonResoTreeMaker();
 
     static void fillDescriptions( edm::ConfigurationDescriptions &descriptions );
 
@@ -95,7 +95,7 @@ private:
 //
 // constructors and destructor
 //
-ConvertedPhotonResoTreeMakerV2::ConvertedPhotonResoTreeMakerV2( const edm::ParameterSet &iConfig ):
+ConvertedPhotonResoTreeMaker::ConvertedPhotonResoTreeMaker( const edm::ParameterSet &iConfig ):
     diphotonToken_( consumes<View<flashgg::DiPhotonCandidate> >( iConfig.getParameter<InputTag> ( "DiPhotonTag" ) ) ),
     vertexToken_( consumes<View<reco::Vertex> >( iConfig.getParameter<InputTag> ( "VertexTag" ) ) ),
     conversionToken_( consumes<View<reco::Conversion> >( iConfig.getParameter<InputTag>( "ConversionTag" ) ) ),
@@ -106,12 +106,12 @@ ConvertedPhotonResoTreeMakerV2::ConvertedPhotonResoTreeMakerV2( const edm::Param
 }
 
 
-ConvertedPhotonResoTreeMakerV2::~ConvertedPhotonResoTreeMakerV2()
+ConvertedPhotonResoTreeMaker::~ConvertedPhotonResoTreeMaker()
 {
 }
 
 void
-ConvertedPhotonResoTreeMakerV2::analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup )
+ConvertedPhotonResoTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup )
 {
 
     // ********************************************************************************
@@ -183,7 +183,7 @@ ConvertedPhotonResoTreeMakerV2::analyze( const edm::Event &iEvent, const edm::Ev
 
 
 void
-ConvertedPhotonResoTreeMakerV2::beginJob()
+ConvertedPhotonResoTreeMaker::beginJob()
 {
     resolutionTree = fs_->make<TTree>( "resolutionTree", "per-diphoton tree" );
     resolutionTree->Branch( "ntracks"          , &resInfo.ntracks,           "ntracks/I"          );
@@ -200,12 +200,12 @@ ConvertedPhotonResoTreeMakerV2::beginJob()
 }
 
 void
-ConvertedPhotonResoTreeMakerV2::endJob()
+ConvertedPhotonResoTreeMaker::endJob()
 {
 }
 
 void
-ConvertedPhotonResoTreeMakerV2::initEventStructure()
+ConvertedPhotonResoTreeMaker::initEventStructure()
 {
     resInfo.ntracks       = -999.;
     resInfo.dipho_mass    = -999.;
@@ -221,7 +221,7 @@ ConvertedPhotonResoTreeMakerV2::initEventStructure()
 }
 
 void
-ConvertedPhotonResoTreeMakerV2::fillDescriptions( edm::ConfigurationDescriptions &descriptions )
+ConvertedPhotonResoTreeMaker::fillDescriptions( edm::ConfigurationDescriptions &descriptions )
 {
     //The following says we do not know what parameters are allowed so do no validation
     // Please change this to state exactly what you do use, even if it is no parameters
@@ -231,7 +231,7 @@ ConvertedPhotonResoTreeMakerV2::fillDescriptions( edm::ConfigurationDescriptions
 }
 
 std::vector<double>
-ConvertedPhotonResoTreeMakerV2::ZmcTruthVertexAndRecoVectex( const std::vector<edm::Ptr<reco::GenParticle> > &genParticles ,
+ConvertedPhotonResoTreeMaker::ZmcTruthVertexAndRecoVectex( const std::vector<edm::Ptr<reco::GenParticle> > &genParticles ,
         const std::vector<edm::Ptr<reco::Vertex> > &vertices, double dzMatch )
 {
 
@@ -265,8 +265,8 @@ ConvertedPhotonResoTreeMakerV2::ZmcTruthVertexAndRecoVectex( const std::vector<e
 }
 
 double 
-//ConvertedPhotonResoTreeMakerV2::vtxZFromConvOnly( const edm::Ptr<flashgg::Photon> &pho, const edm::Ptr<reco:: Conversion> &conversion,
-ConvertedPhotonResoTreeMakerV2::vtxZFromConvOnly( const flashgg::Photon *pho, const edm::Ptr<reco:: Conversion> &conversion,
+//ConvertedPhotonResoTreeMaker::vtxZFromConvOnly( const edm::Ptr<flashgg::Photon> &pho, const edm::Ptr<reco:: Conversion> &conversion,
+ConvertedPhotonResoTreeMaker::vtxZFromConvOnly( const flashgg::Photon *pho, const edm::Ptr<reco:: Conversion> &conversion,
         const math::XYZPoint &beamSpot ) const
 {
     double dz = 0;
@@ -288,8 +288,8 @@ ConvertedPhotonResoTreeMakerV2::vtxZFromConvOnly( const flashgg::Photon *pho, co
 }
 
 double 
-//ConvertedPhotonResoTreeMakerV2::vtxZFromConvSuperCluster( const edm::Ptr<flashgg::Photon> &pho, const edm::Ptr<reco:: Conversion> &conversion,
-ConvertedPhotonResoTreeMakerV2::vtxZFromConvSuperCluster( const flashgg::Photon *pho, const edm::Ptr<reco:: Conversion> &conversion,
+//ConvertedPhotonResoTreeMaker::vtxZFromConvSuperCluster( const edm::Ptr<flashgg::Photon> &pho, const edm::Ptr<reco:: Conversion> &conversion,
+ConvertedPhotonResoTreeMaker::vtxZFromConvSuperCluster( const flashgg::Photon *pho, const edm::Ptr<reco:: Conversion> &conversion,
         const math::XYZPoint &beamSpot ) const
 {
     // get the z from conversion plus SuperCluster
@@ -308,8 +308,8 @@ ConvertedPhotonResoTreeMakerV2::vtxZFromConvSuperCluster( const flashgg::Photon 
 }
 
 std::vector<int> 
-//ConvertedPhotonResoTreeMakerV2::IndexMatchedConversion( const edm::Ptr<flashgg::Photon> &g,
-ConvertedPhotonResoTreeMakerV2::IndexMatchedConversion( const flashgg::Photon *g,
+//ConvertedPhotonResoTreeMaker::IndexMatchedConversion( const edm::Ptr<flashgg::Photon> &g,
+ConvertedPhotonResoTreeMaker::IndexMatchedConversion( const flashgg::Photon *g,
         const std::vector<edm::Ptr<reco::Conversion> > &conversionsVector,  const std::vector<edm::Ptr<reco::Conversion> > &conversionsVectorSingleLeg, 
         bool useSingleLeg ) const
 {
@@ -392,7 +392,7 @@ ConvertedPhotonResoTreeMakerV2::IndexMatchedConversion( const flashgg::Photon *g
     }
 }
 
-DEFINE_FWK_MODULE( ConvertedPhotonResoTreeMakerV2 );
+DEFINE_FWK_MODULE( ConvertedPhotonResoTreeMaker );
 // Local Variables:
 // mode:c++
 // indent-tabs-mode:nil

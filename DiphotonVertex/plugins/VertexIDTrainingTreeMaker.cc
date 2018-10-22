@@ -29,8 +29,6 @@ struct SignalInfo {
     int nvertex;
     int ndipho;
     int dipho_index;
-    int isloosephoton1;
-    int isloosephoton2;
 
     float LogSumPt2;
     float PtBal;
@@ -97,7 +95,6 @@ private:
     edm::EDGetTokenT<VertexCandidateMap> vertexCandidateMapTokenDz_;
 
     edm::EDGetTokenT<reco::BeamSpot > beamSpotToken_;
-    edm::EDGetTokenT<double> rhoTaken_;
     edm::EDGetTokenT<View<reco::GenParticle> > genParticleToken_;
     edm::EDGetTokenT<GenEventInfoProduct>  genEventInfoToken_;
 
@@ -121,7 +118,6 @@ VertexIDTrainingTreeMaker::VertexIDTrainingTreeMaker( const edm::ParameterSet &i
     vertexToken_( consumes<View<reco::Vertex> >( iConfig.getParameter<InputTag> ( "VertexTag" ) ) ),
     vertexCandidateMapTokenDz_( consumes<VertexCandidateMap>( iConfig.getParameter<InputTag>( "VertexCandidateMapTagDz" ) ) ),
     beamSpotToken_( consumes<reco::BeamSpot >( iConfig.getParameter<InputTag>( "BeamSpotTag" ) ) ),
-    rhoTaken_( consumes<double>( iConfig.getParameter<InputTag>( "rhoTag" ) ) ),
     genParticleToken_( consumes<View<reco::GenParticle> >( iConfig.getParameter<InputTag> ( "GenParticleTag" ) ) ),
     genEventInfoToken_( consumes<GenEventInfoProduct>( iConfig.getParameter<InputTag> ( "GenEventInfo" ) ) )
 {
@@ -156,10 +152,6 @@ VertexIDTrainingTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSe
     } else {
         cout << " WARNING NO VALID BEAM SPOT: this should not happen!" << endl;
     }
-
-    Handle<double>  rho;
-    iEvent.getByToken(rhoTaken_,rho);
-    double rho_    = *rho;
 
     Handle<View<reco::GenParticle> > genParticles;
     iEvent.getByToken( genParticleToken_, genParticles );
@@ -251,8 +243,6 @@ VertexIDTrainingTreeMaker::beginJob()
     signalTree->Branch( "ndipho"           , &sigInfo.ndipho          , "ndipho/I"         );
     signalTree->Branch( "genweight"        , &sigInfo.genweight       , "genweight/F"      );
     signalTree->Branch( "dipho_index"      , &sigInfo.dipho_index     , "dipho_index/I"    );
-    signalTree->Branch( "isloosephoton1"   , &sigInfo.isloosephoton1  , "isloosephoton1/I" );
-    signalTree->Branch( "isloosephoton2"   , &sigInfo.isloosephoton2  , "isloosephoton2/I" );
     signalTree->Branch( "dipho_mass"       , &sigInfo.dipho_mass      , "dipho_mass/F"     );
     signalTree->Branch( "logsumpt2"        , &sigInfo.LogSumPt2       , "logsumpt2/F"      );
     signalTree->Branch( "ptbal"            , &sigInfo.PtBal           , "ptbal/F"          );

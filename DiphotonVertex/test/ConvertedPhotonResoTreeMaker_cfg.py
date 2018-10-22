@@ -29,10 +29,10 @@ process.TFileService = cms.Service("TFileService",
 
 #Sequence builder
 #**************************************************************
-process.load("flashggDiphotonVtxPlugins/MVATraining/flashggDiphotonVertexSequence_cff")
+process.load("MyFlashggPlugins.DiphotonVertex.flashggDiphotonVertexSequence_cff")
 process.flashggDiPhotons.nVtxSaveInfo = cms.untracked.uint32(999)
 
-process.commissioning = cms.EDAnalyzer('ConvertedPhotonResoTreeMakerV2',
+process.commissioning = cms.EDAnalyzer('ConvertedPhotonResoTreeMaker',
                                        #DiPhotonTag             = cms.InputTag('flashggDiPhotons'),
                                        DiPhotonTag            = cms.InputTag('flashggPreselectedDiPhotons'),
                                        VertexTag              = cms.InputTag('offlineSlimmedPrimaryVertices'),

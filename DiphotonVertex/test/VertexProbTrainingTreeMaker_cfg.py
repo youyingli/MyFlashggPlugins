@@ -39,48 +39,13 @@ process.TFileService = cms.Service("TFileService",
 
 #Sequence builder
 #**************************************************************
-process.load("flashggDiphotonVtxPlugins/MVATraining/flashggDiphotonVertexSequence_cff")
-#process.flashggDiPhotons.vertexIdMVAweightfile = cms.FileInPath("flashggDiphotonVtxPlugins/Validation/data/TMVAClassification_BDTVtxId_SL_2017.xml")
-#process.flashggDiPhotons.vertexProbMVAweightfile = cms.FileInPath("flashggDiphotonVtxPlugins/Validation/data/TMVAClassification_BDTVtxProb_SL_2017.xml")
-
-#process.flashggDiPhotons.vertexIdMVAweightfile = cms.FileInPath("flashggDiphotonVtxPlugins/Validation/data/TMVAClassification_BDTVtxId_SL_2017V2.xml")
-#process.flashggDiPhotons.vertexProbMVAweightfile = cms.FileInPath("flashggDiphotonVtxPlugins/Validation/data/TMVAClassification_BDTVtxProb_SL_2017V2.xml")
-
-process.flashggDiPhotons.vertexIdMVAweightfile = cms.FileInPath("flashggDiphotonVtxPlugins/Validation/data/TMVAClassification_BDTVtxId_SL_2017V3.xml")
-process.flashggDiPhotons.vertexProbMVAweightfile = cms.FileInPath("flashggDiphotonVtxPlugins/Validation/data/TMVAClassification_BDTVtxProb_SL_2017V3.xml")
-
-#process.flashggDiPhotons.vertexIdMVAweightfile = cms.FileInPath("flashggDiphotonVtxPlugins/Validation/data/TMVAClassification_BDTVtxId_SL_2017V4.xml")
-#process.flashggDiPhotons.vertexProbMVAweightfile = cms.FileInPath("flashggDiphotonVtxPlugins/Validation/data/TMVAClassification_BDTVtxProb_SL_2017V3.xml")
+process.load("MyFlashggPlugins.DiphotonVertex.flashggDiphotonVertexSequence_cff")
+process.flashggDiPhotons.vertexIdMVAweightfile = cms.FileInPath("MyFlashggPlugins/DiphotonVertex/data/TMVAClassification_BDTVtxId_SL_2017.xml")
+process.flashggDiPhotons.vertexProbMVAweightfile = cms.FileInPath("MyFlashggPlugins/DiphotonVertex/data/TMVAClassification_BDTVtxProb_SL_2017.xml")
 
 process.flashggDiPhotons.nVtxSaveInfo = cms.untracked.uint32(999)
 process.flashggDiPhotons.useSingleLeg = cms.bool(True)
 process.flashggDiPhotons.useZerothVertexFromMicro = cms.bool(options.isZeroVertex)
-
-#Cut Based Photon ID
-#process.flashggDiPhotons.sigma1Pix               = cms.double( 0.00800379 )
-#process.flashggDiPhotons.sigma1Tib               = cms.double( 0.502127   )
-#process.flashggDiPhotons.sigma1Tob               = cms.double( 5.5138     )
-#process.flashggDiPhotons.sigma1PixFwd            = cms.double( 0.0318172  )
-#process.flashggDiPhotons.sigma1Tid               = cms.double( 0.325117   )
-#process.flashggDiPhotons.sigma1Tec               = cms.double( 1.19907    )
-#process.flashggDiPhotons.sigma2Pix               = cms.double( 0.0171381  )
-#process.flashggDiPhotons.sigma2Tib               = cms.double( 0.282616   )
-#process.flashggDiPhotons.sigma2Tob               = cms.double( 3.5737     )
-#process.flashggDiPhotons.sigma2PixFwd            = cms.double( 0.0923745  )
-#process.flashggDiPhotons.sigma2Tid               = cms.double( 0.355705   )
-#process.flashggDiPhotons.sigma2Tec               = cms.double( 0.863342   )
-#process.flashggDiPhotons.singlelegsigma1Pix      = cms.double( 0.00879849 )
-#process.flashggDiPhotons.singlelegsigma1Tib      = cms.double( 1.37155    )
-#process.flashggDiPhotons.singlelegsigma1Tob      = cms.double( 2.7242     )
-#process.flashggDiPhotons.singlelegsigma1PixFwd   = cms.double( 0.0596455  )
-#process.flashggDiPhotons.singlelegsigma1Tid      = cms.double( 0.479279   )
-#process.flashggDiPhotons.singlelegsigma1Tec      = cms.double( 2.02211    )
-#process.flashggDiPhotons.singlelegsigma2Pix      = cms.double( 0.0224474  )
-#process.flashggDiPhotons.singlelegsigma2Tib      = cms.double( 0.594662   )
-#process.flashggDiPhotons.singlelegsigma2Tob      = cms.double( 0.433137   )
-#process.flashggDiPhotons.singlelegsigma2PixFwd   = cms.double( 0.137922   )
-#process.flashggDiPhotons.singlelegsigma2Tid      = cms.double( 0.421378   )
-#process.flashggDiPhotons.singlelegsigma2Tec      = cms.double( 0.977421   )
 
 #Diphoton preselection
 process.flashggDiPhotons.sigma1Pix               = cms.double( 0.00802885 )
@@ -108,33 +73,8 @@ process.flashggDiPhotons.singlelegsigma2PixFwd   = cms.double( 0.139077   )
 process.flashggDiPhotons.singlelegsigma2Tid      = cms.double( 0.395489   )
 process.flashggDiPhotons.singlelegsigma2Tec      = cms.double( 0.958625   )
 
-#process.flashggDiPhotons.sigma1Pix               = cms.double( 0.00804137 )
-#process.flashggDiPhotons.sigma1Tib               = cms.double( 0.507857   )
-#process.flashggDiPhotons.sigma1Tob               = cms.double( 5.63449    )
-#process.flashggDiPhotons.sigma1PixFwd            = cms.double( 0.034551   )
-#process.flashggDiPhotons.sigma1Tid               = cms.double( 0.326273   )
-#process.flashggDiPhotons.sigma1Tec               = cms.double( 1.19907    )
-#process.flashggDiPhotons.sigma2Pix               = cms.double( 0.0160633  )
-#process.flashggDiPhotons.sigma2Tib               = cms.double( 0.282202   )
-#process.flashggDiPhotons.sigma2Tob               = cms.double( 3.95819    )
-#process.flashggDiPhotons.sigma2PixFwd            = cms.double( 0.0920137  )
-#process.flashggDiPhotons.sigma2Tid               = cms.double( 0.342842   )
-#process.flashggDiPhotons.sigma2Tec               = cms.double( 0.875536   )
-#process.flashggDiPhotons.singlelegsigma1Pix      = cms.double( 0.00956435 )
-#process.flashggDiPhotons.singlelegsigma1Tib      = cms.double( 1.38078    )
-#process.flashggDiPhotons.singlelegsigma1Tob      = cms.double( 2.60343    )
-#process.flashggDiPhotons.singlelegsigma1PixFwd   = cms.double( 0.0835342  )
-#process.flashggDiPhotons.singlelegsigma1Tid      = cms.double( 0.471549   )
-#process.flashggDiPhotons.singlelegsigma1Tec      = cms.double( 1.99499    )
-#process.flashggDiPhotons.singlelegsigma2Pix      = cms.double( 0.0288075  )
-#process.flashggDiPhotons.singlelegsigma2Tib      = cms.double( 0.58634    )
-#process.flashggDiPhotons.singlelegsigma2Tob      = cms.double( 0.400822   )
-#process.flashggDiPhotons.singlelegsigma2PixFwd   = cms.double( 0.171393   )
-#process.flashggDiPhotons.singlelegsigma2Tid      = cms.double( 0.403523   )
-#process.flashggDiPhotons.singlelegsigma2Tec      = cms.double( 0.958625   )
-
 process.commissioning = cms.EDAnalyzer('VertexProbTrainingTreeMaker',
-                                       #DiPhotonTag             = cms.InputTag('flashggDiPhotons'),
+                                      #DiPhotonTag             = cms.InputTag('flashggDiPhotons'),
                                        DiPhotonTag             = cms.InputTag('flashggPreselectedDiPhotons'),
                                        VertexTag               = cms.InputTag('offlineSlimmedPrimaryVertices'),
                                        VertexCandidateMapTagDz = cms.InputTag('flashggVertexMapUnique'),
