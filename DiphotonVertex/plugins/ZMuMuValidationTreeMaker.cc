@@ -35,12 +35,10 @@
 using namespace std;
 using namespace edm;
 using namespace flashgg;
-//using namespace reco;
-//using namespace math;
-
 
 struct GlobalInfo {
-    int nPU ;
+    int nPU               ;
+    float BSsigmaz        ;
 };
 
 struct DimuonInfo {
@@ -52,6 +50,7 @@ struct DimuonInfo {
     float zRecoTrueNoMu   ;
     float zTrue           ;
     int   nPU             ;
+    int   ntightmuons     ;
     float dimuon_mass     ; 
     float dimuon_pt       ; 
     float muon1_pt        ; 
@@ -212,20 +211,21 @@ ZMuMuValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSet
 
     Handle<reco::BeamSpot> recoBeamSpotHandle;
     iEvent.getByToken( beamSpotToken_, recoBeamSpotHandle );
+
+    initEventStructure();
+
     math::XYZPoint beamSpot;
     double BSsigmaz = 0;
     if( recoBeamSpotHandle.isValid() ) {
         beamSpot = recoBeamSpotHandle->position();
         BSsigmaz = recoBeamSpotHandle->sigmaZ();
-
+        globalInfo.BSsigmaz = BSsigmaz;
     } else {
         cout << " WARNING NO VALID BEAM SPOT: this should not happen!" << endl;
     }
 
     Handle<View< PileupSummaryInfo> > PileupInfos;
     iEvent.getByToken( PileUpToken_, PileupInfos ); 
-
-    initEventStructure();
 
     if( !iEvent.isRealData() ) {
 
@@ -253,7 +253,7 @@ ZMuMuValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSet
     
     vector<int> muon_index = isTightMuonWithoutVtxCut(patMuons->ptrs());
   
-    if( muon_index.size() >=2 ){
+    if( muon_index.size() >= 2 ){
         
         float Zmass = 91.19;
         Ptr<pat::Muon> pat_muon1 = patMuons->ptrAt(muon_index[0]);
@@ -264,7 +264,7 @@ ZMuMuValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSet
         double dimuon_pt = dimuonP4.pt();
 
         if ( fabs(dimuon_mass - Zmass) < 30. ) {
-
+            dimuonInfo.ntightmuons = muon_index.size();
             dimuonInfo.dimuon_mass = dimuon_mass;
             dimuonInfo.dimuon_pt = dimuon_pt;
 
@@ -316,9 +316,10 @@ ZMuMuValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSet
             int iFromMuonsWithMu = getRecoWithMuonsVertexIndex(primaryVerticesWithMu->ptrs(), pat_muon1, pat_muon2);
             int iFromMuonsNoMu = getRecoWithMuonsVertexIndex(primaryVerticesNoMu->ptrs(), pat_muon1, pat_muon2);       
       
-            if( iFromMuonsNoMu != -1 && iFromMuonsWithMu != -1 ) {
+            if( iFromMuonsWithMu != -1 ) {
+
                 dimuonInfo.zRecoFromMu = primaryVerticesWithMu->ptrAt(iFromMuonsWithMu)->z();
-                dimuonInfo.zRecoFromMuNoMu = primaryVerticesNoMu->ptrAt(iFromMuonsNoMu)->z();
+                if( iFromMuonsNoMu != -1 ) dimuonInfo.zRecoFromMuNoMu = primaryVerticesNoMu->ptrAt(iFromMuonsNoMu)->z();
                 DiMuonTree->Fill();
 
                 //Right Vertex
@@ -378,6 +379,7 @@ ZMuMuValidationTreeMaker::beginJob()
 
     GlobalTree = fs_->make<TTree>( "GlobalTree", "GlobalTree" );   
     GlobalTree->Branch( "nPU"              , &globalInfo.nPU              , "nPU/I"             );  
+    GlobalTree->Branch( "BSsigmaz"         , &globalInfo.BSsigmaz         , "BSsigmaz/F"        );  
 
     DiMuonTree = fs_->make<TTree>( "DiMuonTree", "DiMuonTree" );   
     DiMuonTree->Branch( "BSz"              , &dimuonInfo.BSz              , "BSz/F"             );  
@@ -387,6 +389,7 @@ ZMuMuValidationTreeMaker::beginJob()
     DiMuonTree->Branch( "zRecoTrueNoMu"    , &dimuonInfo.zRecoTrueNoMu    , "zRecoTrueNoMu/F"   );  
     DiMuonTree->Branch( "zTrue"            , &dimuonInfo.zTrue            , "zTrue/F"           );  
     DiMuonTree->Branch( "nPU"              , &dimuonInfo.nPU              , "nPU/I"             );  
+    DiMuonTree->Branch( "ntightmuons"      , &dimuonInfo.ntightmuons      , "ntightmuons/I"     );  
     DiMuonTree->Branch( "dimuon_mass"      , &dimuonInfo.dimuon_mass      , "dimuon_mass/F"     );  
     DiMuonTree->Branch( "dimuon_pt"        , &dimuonInfo.dimuon_pt        , "dimuon_pt/F"       );  
     DiMuonTree->Branch( "muon1_pt"         , &dimuonInfo.muon1_pt         , "muon1_pt/F"        );  
@@ -453,6 +456,7 @@ void
 ZMuMuValidationTreeMaker::initEventStructure()
 {
     globalInfo.nPU             = -999;
+    globalInfo.BSsigmaz        = -999.; 
 
     dimuonInfo.BSz             = -999.; 
     dimuonInfo.BSsigmaz        = -999.; 
@@ -461,6 +465,7 @@ ZMuMuValidationTreeMaker::initEventStructure()
     dimuonInfo.zRecoTrueNoMu   = -999.; 
     dimuonInfo.zTrue           = -999.; 
     dimuonInfo.nPU             = -999 ; 
+    dimuonInfo.ntightmuons     = -999 ; 
     dimuonInfo.dimuon_mass     = -999.; 
     dimuonInfo.dimuon_pt       = -999.; 
     dimuonInfo.muon1_pt        = -999.; 
