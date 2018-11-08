@@ -15,6 +15,9 @@
 
 #include "flashgg/DataFormats/interface/DiPhotonCandidate.h"
 #include "flashgg/DataFormats/interface/Jet.h"
+#include "flashgg/DataFormats/interface/Electron.h"
+#include "flashgg/DataFormats/interface/Muon.h"
+#include "flashgg/DataFormats/interface/Met.h"
 #include "SimDataFormats/HTXS/interface/HiggsTemplateCrossSections.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
@@ -92,17 +95,18 @@ using namespace flashgg;
 
 // **********************************************************************
 
-class DiPhotonJetsTreeMaker : public edm::EDAnalyzer
+class flashggAnalysisTreeMakerStd : public edm::EDAnalyzer
 {
 public:
-    explicit DiPhotonJetsTreeMaker( const edm::ParameterSet & );
-    ~DiPhotonJetsTreeMaker();
+    explicit flashggAnalysisTreeMakerStd( const edm::ParameterSet & );
+    ~flashggAnalysisTreeMakerStd();
 
     static void fillDescriptions( edm::ConfigurationDescriptions &descriptions );
 
 
 private:
 
+    typedef std::vector<edm::Handle<edm::View<flashgg::Jet> > > JetCollectionVector;
     edm::Service<TFileService> fs_;
 
 
@@ -113,25 +117,27 @@ private:
 
     void initEventStructure();
 
-    edm::EDGetTokenT<edm::View<flashgg::DiPhotonCandidate> > diphotonToken_;
+    edm::EDGetTokenT<edm::View<flashgg::DiPhotonCandidate>> diphotonToken_;
     std::vector<edm::InputTag> inputTagJets_;
-    edm::EDGetTokenT<edm::View<reco::Vertex> >               vertexToken_;
+    std::vector<edm::EDGetTokenT<View<flashgg::Jet>>>       tokenJets_;
+    edm::EDGetTokenT<edm::View<flashgg::Electron>>          electronToken_;
+    edm::EDGetTokenT<edm::View<flashgg::Muon>>              muonToken_;
+    edm::EDGetTokenT<edm::View<flashgg::Met>>               metToken_;
 
-    edm::EDGetTokenT<reco::BeamSpot > beamSpotToken_;
-    edm::EDGetTokenT<double> rhoTaken_;
-    edm::EDGetTokenT<View<reco::GenParticle> > genParticleToken_;
-    edm::EDGetTokenT<GenEventInfoProduct>  genEventInfoToken_;
-    edm::EDGetTokenT<View<PileupSummaryInfo>> pileUpToken_;
-    edm::EDGetTokenT<edm::TriggerResults> triggerToken_;
+    edm::EDGetTokenT<edm::View<reco::Vertex>>               vertexToken_;
+    edm::EDGetTokenT<reco::BeamSpot>                        beamSpotToken_;
+    edm::EDGetTokenT<double>                                rhoTaken_;
+    edm::EDGetTokenT<View<reco::GenParticle>>               genParticleToken_;
+    edm::EDGetTokenT<GenEventInfoProduct>                   genEventInfoToken_;
+    edm::EDGetTokenT<View<PileupSummaryInfo>>               pileUpToken_;
+    edm::EDGetTokenT<edm::TriggerResults>                   triggerToken_;
     std::string pathName_;
     bool doHTXS_;
 
-    typedef std::vector<edm::Handle<edm::View<flashgg::Jet> > > JetCollectionVector;
-    std::vector<edm::EDGetTokenT<View<flashgg::Jet> > > tokenJets_;
 
-    EDGetTokenT<int> stage0catToken_, stage1catToken_, njetsToken_;
-    EDGetTokenT<HTXS::HiggsClassification> newHTXSToken_;
-    EDGetTokenT<float> pTHToken_,pTVToken_;
+    edm::EDGetTokenT<int> stage0catToken_, stage1catToken_, njetsToken_;
+    edm::EDGetTokenT<HTXS::HiggsClassification> newHTXSToken_;
+    edm::EDGetTokenT<float> pTHToken_,pTVToken_;
 
     TTree *DiPhotonJetsTree;
 
@@ -145,16 +151,19 @@ private:
 //
 // constructors and destructor
 //
-DiPhotonJetsTreeMaker::DiPhotonJetsTreeMaker( const edm::ParameterSet &iConfig ):
-    diphotonToken_( consumes<View<flashgg::DiPhotonCandidate> >( iConfig.getParameter<InputTag> ( "DiPhotonTag" ) ) ),
-    inputTagJets_ ( iConfig.getParameter<std::vector<edm::InputTag> >( "inputTagJets" ) ),
-    vertexToken_( consumes<View<reco::Vertex> >( iConfig.getParameter<InputTag> ( "VertexTag" ) ) ),
-    beamSpotToken_( consumes<reco::BeamSpot >( iConfig.getParameter<InputTag>( "BeamSpotTag" ) ) ),
-    rhoTaken_( consumes<double>( iConfig.getParameter<InputTag>( "RhoTag" ) ) ),
-    genParticleToken_( consumes<View<reco::GenParticle> >( iConfig.getParameter<InputTag> ( "GenParticleTag" ) ) ),
-    genEventInfoToken_( consumes<GenEventInfoProduct>( iConfig.getParameter<InputTag> ( "GenEventInfo" ) ) ),
-    pileUpToken_( consumes<View<PileupSummaryInfo> >( iConfig.getParameter<InputTag> ( "PileUpTag" ) ) ),
-    triggerToken_( consumes<edm::TriggerResults>( iConfig.getParameter<InputTag> ( "TriggerTag" ) ) )
+flashggAnalysisTreeMakerStd::flashggAnalysisTreeMakerStd( const edm::ParameterSet &iConfig ):
+    diphotonToken_        ( consumes< View<flashgg::DiPhotonCandidate> >     ( iConfig.getParameter<InputTag> ( "DiPhotonTag"    ) ) ),
+    inputTagJets_         ( iConfig.getParameter<std::vector<edm::InputTag> >( "inputTagJets" )                                      ),
+    electronToken_        ( consumes< View<flashgg::Electron> >              ( iConfig.getParameter<InputTag> ( "ElectronTag"    ) ) ),
+    muonToken_            ( consumes< View<flashgg::Muon> >                  ( iConfig.getParameter<InputTag> ( "MuonTag"        ) ) ),
+    metToken_             ( consumes< View<flashgg::Met> >                   ( iConfig.getParameter<InputTag> ( "MetTag"         ) ) ),
+    vertexToken_          ( consumes< View<reco::Vertex> >                   ( iConfig.getParameter<InputTag> ( "VertexTag"      ) ) ),
+    beamSpotToken_        ( consumes< reco::BeamSpot >                       ( iConfig.getParameter<InputTag> ( "BeamSpotTag"    ) ) ),
+    rhoTaken_             ( consumes< double >                               ( iConfig.getParameter<InputTag> ( "RhoTag"         ) ) ),
+    genParticleToken_     ( consumes< View<reco::GenParticle> >              ( iConfig.getParameter<InputTag> ( "GenParticleTag" ) ) ),
+    genEventInfoToken_    ( consumes< GenEventInfoProduct >                  ( iConfig.getParameter<InputTag> ( "GenEventInfo"   ) ) ),
+    pileUpToken_          ( consumes< View<PileupSummaryInfo > >             ( iConfig.getParameter<InputTag> ( "PileUpTag"      ) ) ),
+    triggerToken_         ( consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "TriggerTag"     ) ) )
 {
     pathName_ = iConfig.getParameter<std::string>( "pathName" ) ;
     doHTXS_   = iConfig.getParameter<bool>( "doHTXS" ) ;
@@ -167,52 +176,49 @@ DiPhotonJetsTreeMaker::DiPhotonJetsTreeMaker( const edm::ParameterSet &iConfig )
     ParameterSet HTXSps = iConfig.getParameterSet( "HTXSTags" );
     stage0catToken_ = consumes<int>( HTXSps.getParameter<InputTag>("stage0cat") );
     stage1catToken_ = consumes<int>( HTXSps.getParameter<InputTag>("stage1cat") );
-    njetsToken_ = consumes<int>( HTXSps.getParameter<InputTag>("njets") );
-    pTHToken_ = consumes<float>( HTXSps.getParameter<InputTag>("pTH") );
-    pTVToken_ = consumes<float>( HTXSps.getParameter<InputTag>("pTV") );
-    newHTXSToken_ = consumes<HTXS::HiggsClassification>( HTXSps.getParameter<InputTag>("ClassificationObj") );
+    njetsToken_     = consumes<int>( HTXSps.getParameter<InputTag>("njets") );
+    pTHToken_       = consumes<float>( HTXSps.getParameter<InputTag>("pTH") );
+    pTVToken_       = consumes<float>( HTXSps.getParameter<InputTag>("pTV") );
+    newHTXSToken_   = consumes<HTXS::HiggsClassification>( HTXSps.getParameter<InputTag>("ClassificationObj") );
 
 }
 
-DiPhotonJetsTreeMaker::~DiPhotonJetsTreeMaker()
+flashggAnalysisTreeMakerStd::~flashggAnalysisTreeMakerStd()
 {
 }
 
 void
-DiPhotonJetsTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup )
+flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup )
 {
 
     // ********************************************************************************
 
     // access edm objects
-    Handle<View<flashgg::DiPhotonCandidate> > diphotons;
-    iEvent.getByToken( diphotonToken_, diphotons );
-
+    Handle< View<flashgg::DiPhotonCandidate> >   diphotons;
     JetCollectionVector Jets( inputTagJets_.size() );
-    for( size_t j = 0; j < inputTagJets_.size(); ++j ) {
-        iEvent.getByToken( tokenJets_[j], Jets[j] );
-    }
+    Handle< View<flashgg::Electron> >            electrons;
+    Handle< View<flashgg::Muon> >                muons;
+    Handle< View<flashgg::Met> >                 met;
+    Handle< View<reco::Vertex> >                 primaryVertices;
+    Handle< reco::BeamSpot >                     recoBeamSpotHandle;
+    Handle< double >                             rho;
+    Handle< View<reco::GenParticle> >            genParticles;
+    Handle< GenEventInfoProduct >                genEventInfo;
+    Handle< View< PileupSummaryInfo> >           pileupInfo;
+    Handle< edm::TriggerResults >                triggerHandle;
 
-    Handle<View<reco::Vertex> > primaryVertices;
-    iEvent.getByToken( vertexToken_, primaryVertices );
-
-    Handle<reco::BeamSpot> recoBeamSpotHandle;
-    iEvent.getByToken( beamSpotToken_, recoBeamSpotHandle );
-
-    Handle<double>  rho;
-    iEvent.getByToken(rhoTaken_,rho);
-
-    Handle<View<reco::GenParticle> > genParticles;
-    iEvent.getByToken( genParticleToken_, genParticles );
-
-    Handle<GenEventInfoProduct> genEventInfo;
-    iEvent.getByToken( genEventInfoToken_, genEventInfo );
-
-    Handle<View< PileupSummaryInfo> > pileupInfo;
-    iEvent.getByToken( pileUpToken_, pileupInfo );
-
-    Handle<edm::TriggerResults> triggerHandle;
-    iEvent.getByToken( triggerToken_, triggerHandle );
+    iEvent.getByToken( diphotonToken_     ,     diphotons           );
+    for( size_t j = 0; j < inputTagJets_.size(); ++j ) iEvent.getByToken( tokenJets_[j], Jets[j] );
+    iEvent.getByToken( electronToken_     ,     electrons           );
+    iEvent.getByToken( muonToken_         ,     muons               );
+    iEvent.getByToken( metToken_          ,     met                 );
+    iEvent.getByToken( vertexToken_       ,     primaryVertices     );
+    iEvent.getByToken( beamSpotToken_     ,     recoBeamSpotHandle  );
+    iEvent.getByToken( rhoTaken_          ,     rho                 );
+    iEvent.getByToken( genParticleToken_  ,     genParticles        );
+    iEvent.getByToken( genEventInfoToken_ ,     genEventInfo        );
+    iEvent.getByToken( pileUpToken_       ,     pileupInfo          );
+    iEvent.getByToken( triggerToken_      ,     triggerHandle       );
 
     Handle<int> stage0cat, stage1cat, njets;
     Handle<float> pTH, pTV;
@@ -255,11 +261,11 @@ DiPhotonJetsTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSetup 
     }
 
     // diphoton loop
-    const std::vector<edm::Ptr<flashgg::DiPhotonCandidate> > diphotonsPtrs = diphotons->ptrs();
+    const std::vector<edm::Ptr<flashgg::DiPhotonCandidate> > diphotonPtrs = diphotons->ptrs();
 
-    if (diphotonsPtrs.size() > 0) {
+    if (diphotonPtrs.size() > 0) {
 
-        Ptr<flashgg::DiPhotonCandidate> diphoPtr = diphotonsPtrs[0];
+        Ptr<flashgg::DiPhotonCandidate> diphoPtr = diphotonPtrs[0];
         diPhotonJetsInfo.dipho_mass                 = diphoPtr->mass();
         diPhotonJetsInfo.dipho_pt                   = diphoPtr->pt();
         diPhotonJetsInfo.dipho_leadPt               = diphoPtr->leadingPhoton()->pt();
@@ -285,8 +291,24 @@ DiPhotonJetsTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSetup 
         diPhotonJetsInfo.dipho_subleadGenMatch      = (int) diphoPtr->subLeadingPhoton()->hasMatchedGenPhoton();
         diPhotonJetsInfo.dipho_subleadGenMatchType  = diphoPtr->subLeadingPhoton()->genMatchType();
 
+        //cout << diphoPtr->weight("FracRVWeightDown01sigma") <<"  " <<diphoPtr->centralWeight() << "  " << diphoPtr->weight("FracRVWeightUp01sigma") << endl;
+        //cout << diphoPtr->weight("electronVetoSFDown01sigma") <<"  " <<diphoPtr->centralWeight() << "  " << diphoPtr->weight("electronVetoSFUp01sigma") << endl;
+        //cout << diphoPtr->weight("ShowerShapeHighR9EBUp01sigma") <<"  " <<diphoPtr->centralWeight() << "  " << diphoPtr->weight("ShowerShapeHighR9EBDown01sigma") << endl;
+
         diPhotonJetsInfo.selectedvz = diphoPtr->vtx()->position().z();
         diPhotonJetsInfo.genvz = diphoPtr->genPV().z();
+
+
+        //const std::vector<edm::Ptr<flashgg::Electron> > electronPtrs = electrons->ptrs();
+        //for( const auto it : electronPtrs) cout << "electron  : " << it -> pt() << endl;
+
+        //const std::vector<edm::Ptr<flashgg::Muon> > muonPtrs = muons->ptrs();
+        //for( const auto it : muonPtrs) cout << "muon  : " << it -> pt() << endl;
+
+        //const std::vector<edm::Ptr<flashgg::Met> > metPtr = met->ptrs();
+        //for( const auto it : metPtr) cout << "met  : " << it -> pt() << endl;
+
+
 
         unsigned int jetCollectionIndex = diphoPtr->jetCollectionIndex();
         int Njet = 0;
@@ -331,13 +353,13 @@ DiPhotonJetsTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSetup 
         }
 
         if(doHTXS_) {
-            diPhotonJetsInfo.genweight     = genEventInfo->weight();
             diPhotonJetsInfo.HTXSstage0cat = htxsClassification->stage0_cat;
             diPhotonJetsInfo.HTXSstage1cat = htxsClassification->stage1_cat_pTjet30GeV;
             diPhotonJetsInfo.HTXSnjets     = htxsClassification->jets30.size();
             diPhotonJetsInfo.HTXSpTH       = htxsClassification->p4decay_higgs.pt();
             diPhotonJetsInfo.HTXSpTV       = htxsClassification->p4decay_V.pt();
         }
+        diPhotonJetsInfo.genweight     = genEventInfo->weight();
         //const std::vector<edm::Ptr<reco::GenParticle> > genParticlesPtrs = genParticles->ptrs();
     }
 
@@ -347,7 +369,7 @@ DiPhotonJetsTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSetup 
 
 
 void
-DiPhotonJetsTreeMaker::beginJob()
+flashggAnalysisTreeMakerStd::beginJob()
 {
     DiPhotonJetsTree = fs_->make<TTree>( "DiPhotonJetsTree", "DiPhotonJets tree" );
 
@@ -406,12 +428,12 @@ DiPhotonJetsTreeMaker::beginJob()
 }
 
 void
-DiPhotonJetsTreeMaker::endJob()
+flashggAnalysisTreeMakerStd::endJob()
 {
 }
 
 void
-DiPhotonJetsTreeMaker::initEventStructure()
+flashggAnalysisTreeMakerStd::initEventStructure()
 {
 
     diPhotonJetsInfo.nPu             = -999;
@@ -468,7 +490,7 @@ DiPhotonJetsTreeMaker::initEventStructure()
 }
 
 void
-DiPhotonJetsTreeMaker::fillDescriptions( edm::ConfigurationDescriptions &descriptions )
+flashggAnalysisTreeMakerStd::fillDescriptions( edm::ConfigurationDescriptions &descriptions )
 {
     //The following says we do not know what parameters are allowed so do no validation
     // Please change this to state exactly what you do use, even if it is no parameters
@@ -478,7 +500,7 @@ DiPhotonJetsTreeMaker::fillDescriptions( edm::ConfigurationDescriptions &descrip
 }
 
 
-DEFINE_FWK_MODULE( DiPhotonJetsTreeMaker );
+DEFINE_FWK_MODULE( flashggAnalysisTreeMakerStd );
 // Local Variables:
 // mode:c++
 // indent-tabs-mode:nil
