@@ -24,67 +24,13 @@
 #include "FWCore/Common/interface/TriggerNames.h"
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
 
+#include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/MuonReco/interface/MuonSelectors.h"
+#include "flashgg/Taggers/interface/LeptonSelection.h"
+
+#include "MyFlashggPlugins/flashggAnalysisNtuplizer/interface/DataFormats.h"
+#include "TLorentzVector.h"
 #include "TTree.h"
-
-// **********************************************************************
-
-// define the structures used to create tree branches and fill the trees
-
-struct DiPhotonJetsInfo {
-
-    int nPu                          ;
-    float genvz                      ;
-    float genweight                  ;
-
-    float rho                        ;
-    float pvz                        ;
-    float selectedvz                 ;
-    int nvertex                      ;
-    float BSsigmaz                   ;
-    int passTrigger                  ;
-
-    float dipho_mass                 ;
-    float dipho_pt                   ;
-    float dipho_leadPt               ; 
-    float dipho_leadEta              ; 
-    float dipho_leadPhi              ; 
-    float dipho_leadE                ; 
-    float dipho_leadsigEOverE        ; 
-    float dipho_leadR9               ; 
-    float dipho_leadsieie            ; 
-    float dipho_leadhoe              ; 
-    float dipho_leadIDMVA            ;
-    int   dipho_leadGenMatch         ;
-    int   dipho_leadGenMatchType     ;
-    float dipho_subleadPt            ; 
-    float dipho_subleadEta           ; 
-    float dipho_subleadPhi           ; 
-    float dipho_subleadE             ; 
-    float dipho_subleadsigEOverE     ; 
-    float dipho_subleadR9            ; 
-    float dipho_subleadsieie         ; 
-    float dipho_subleadhoe           ; 
-    float dipho_subleadIDMVA         ; 
-    int   dipho_subleadGenMatch      ;
-    int   dipho_subleadGenMatchType  ;
-
-    int jets_size;
-    vector<float> jets_Pt         ;
-    vector<float> jets_Eta        ;
-    vector<float> jets_Phi        ;
-    vector<float> jets_Mass       ;
-    vector<float> jets_QGL        ;
-    vector<float> jets_RMS        ;
-    vector<float> jets_puJetIdMVA ;
-    vector<int>   jets_GenMatch   ;
-
-    int HTXSstage0cat ;
-    int HTXSstage1cat ;
-    int HTXSnjets     ;
-    float HTXSpTH     ;
-    float HTXSpTV     ; 
-
-};
 
 // **********************************************************************
 
@@ -109,13 +55,9 @@ private:
     typedef std::vector<edm::Handle<edm::View<flashgg::Jet> > > JetCollectionVector;
     edm::Service<TFileService> fs_;
 
-
-
     virtual void beginJob() override;
     virtual void analyze( const edm::Event &, const edm::EventSetup & ) override;
     virtual void endJob() override;
-
-    void initEventStructure();
 
     edm::EDGetTokenT<edm::View<flashgg::DiPhotonCandidate>> diphotonToken_;
     std::vector<edm::InputTag> inputTagJets_;
@@ -131,6 +73,7 @@ private:
     edm::EDGetTokenT<GenEventInfoProduct>                   genEventInfoToken_;
     edm::EDGetTokenT<View<PileupSummaryInfo>>               pileUpToken_;
     edm::EDGetTokenT<edm::TriggerResults>                   triggerToken_;
+    edm::EDGetTokenT<edm::TriggerResults>                   mettriggerToken_;
     std::string pathName_;
     bool doHTXS_;
 
@@ -139,9 +82,7 @@ private:
     edm::EDGetTokenT<HTXS::HiggsClassification> newHTXSToken_;
     edm::EDGetTokenT<float> pTHToken_,pTVToken_;
 
-    TTree *DiPhotonJetsTree;
-
-    DiPhotonJetsInfo diPhotonJetsInfo;
+    flashggAnalysisTreeFormatStd dataformat;
 
 };
 
@@ -163,7 +104,8 @@ flashggAnalysisTreeMakerStd::flashggAnalysisTreeMakerStd( const edm::ParameterSe
     genParticleToken_     ( consumes< View<reco::GenParticle> >              ( iConfig.getParameter<InputTag> ( "GenParticleTag" ) ) ),
     genEventInfoToken_    ( consumes< GenEventInfoProduct >                  ( iConfig.getParameter<InputTag> ( "GenEventInfo"   ) ) ),
     pileUpToken_          ( consumes< View<PileupSummaryInfo > >             ( iConfig.getParameter<InputTag> ( "PileUpTag"      ) ) ),
-    triggerToken_         ( consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "TriggerTag"     ) ) )
+    triggerToken_         ( consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "TriggerTag"     ) ) ),
+    mettriggerToken_      ( consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "MetTriggerTag"  ) ) )
 {
     pathName_ = iConfig.getParameter<std::string>( "pathName" ) ;
     doHTXS_   = iConfig.getParameter<bool>( "doHTXS" ) ;
@@ -191,8 +133,6 @@ void
 flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup )
 {
 
-    // ********************************************************************************
-
     // access edm objects
     Handle< View<flashgg::DiPhotonCandidate> >   diphotons;
     JetCollectionVector Jets( inputTagJets_.size() );
@@ -206,6 +146,7 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
     Handle< GenEventInfoProduct >                genEventInfo;
     Handle< View< PileupSummaryInfo> >           pileupInfo;
     Handle< edm::TriggerResults >                triggerHandle;
+    Handle< edm::TriggerResults >                mettriggerHandle;
 
     iEvent.getByToken( diphotonToken_     ,     diphotons           );
     for( size_t j = 0; j < inputTagJets_.size(); ++j ) iEvent.getByToken( tokenJets_[j], Jets[j] );
@@ -219,151 +160,266 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
     iEvent.getByToken( genEventInfoToken_ ,     genEventInfo        );
     iEvent.getByToken( pileUpToken_       ,     pileupInfo          );
     iEvent.getByToken( triggerToken_      ,     triggerHandle       );
+    iEvent.getByToken( mettriggerToken_   ,     mettriggerHandle    );
 
     Handle<int> stage0cat, stage1cat, njets;
     Handle<float> pTH, pTV;
     iEvent.getByToken(stage0catToken_, stage0cat);
-    iEvent.getByToken(stage1catToken_,stage1cat);
-    iEvent.getByToken(njetsToken_,njets);
-    iEvent.getByToken(pTHToken_,pTH);
-    iEvent.getByToken(pTVToken_,pTV);
+    iEvent.getByToken(stage1catToken_, stage1cat);
+    iEvent.getByToken(njetsToken_, njets);
+    iEvent.getByToken(pTHToken_, pTH);
+    iEvent.getByToken(pTVToken_, pTV);
 
     Handle<HTXS::HiggsClassification> htxsClassification;
-    iEvent.getByToken(newHTXSToken_,htxsClassification);
+    iEvent.getByToken(newHTXSToken_, htxsClassification);
 
     // ********************************************************************************
 
-    initEventStructure();
+    dataformat.Initialzation();
+
+    dataformat.Rho     = *rho;
+    dataformat.PVz     = primaryVertices->ptrAt(0)->z();
+    dataformat.NVtx    = primaryVertices->size();
+    if( recoBeamSpotHandle.isValid() ) {
+        dataformat.BSsigmaz = recoBeamSpotHandle->sigmaZ();
+    }
 
     if (iEvent.isRealData()) {
-        diPhotonJetsInfo.passTrigger = 1;
+        dataformat.passTrigger = true;
     } else {
         const edm::TriggerNames &triggerNames = iEvent.triggerNames( *triggerHandle );
-
+                                                                                                             
         map<string, int> triggerIndices;
         for( unsigned int i = 0; i < triggerNames.triggerNames().size(); i++ ) {
             std::string trimmedName = HLTConfigProvider::removeVersion( triggerNames.triggerName( i ) );
             triggerIndices.emplace(trimmedName, triggerNames.triggerIndex( triggerNames.triggerName( i ) ));
         }
-
+                                                                                                             
         for (const auto& it : triggerIndices) {
             if (triggerHandle->accept(it.second)) {
-                if (it.first == pathName_) {diPhotonJetsInfo.passTrigger = 1; break;}
+                if (it.first == pathName_) {dataformat.passTrigger = true; break;}
             }
         }
     }
 
-    diPhotonJetsInfo.rho     = *rho;
-    diPhotonJetsInfo.pvz     = primaryVertices->ptrAt(0)->z();
-    diPhotonJetsInfo.nvertex = primaryVertices->size();
-    if( recoBeamSpotHandle.isValid() ) {
-        diPhotonJetsInfo.BSsigmaz = recoBeamSpotHandle->sigmaZ();
-    }
+    const edm::TriggerNames& mettriggername = iEvent.triggerNames( *mettriggerHandle );
+    auto passMETFilter = [ &mettriggerHandle, &mettriggername ] ( const std::string& triggername ) {
+         const unsigned index = mettriggername.triggerIndex( triggername );
+         return mettriggerHandle->accept( index ) && mettriggerHandle->wasrun( index ) && !mettriggerHandle->error( index );
+    };
+                                                                                                                             
+    dataformat.Flag_HBHENoiseFilter                    = passMETFilter("Flag_HBHENoiseFilter");
+    dataformat.Flag_HBHENoiseIsoFilter                 = passMETFilter("Flag_HBHENoiseIsoFilter");
+    dataformat.Flag_EcalDeadCellTriggerPrimitiveFilter = passMETFilter("Flag_EcalDeadCellTriggerPrimitiveFilter");
+    dataformat.Flag_goodVertices                       = passMETFilter("Flag_goodVertices");
+    dataformat.Flag_globalSuperTightHalo2016Filter     = passMETFilter("Flag_globalSuperTightHalo2016Filter");
+    dataformat.Flag_BadPFMuonFilter                    = passMETFilter("Flag_BadPFMuonFilter");
+    dataformat.Flag_BadChargedCandidateFilter          = passMETFilter("Flag_BadChargedCandidateFilter");
+    dataformat.Flag_ecalBadCalibFilter                 = passMETFilter("Flag_ecalBadCalibFilter");
+    dataformat.Flag_eeBadScFilter                      = iEvent.isRealData() ? passMETFilter("Flag_eeBadScFilter") : true;
 
-    // diphoton loop
     const std::vector<edm::Ptr<flashgg::DiPhotonCandidate> > diphotonPtrs = diphotons->ptrs();
-
     if (diphotonPtrs.size() > 0) {
 
-        Ptr<flashgg::DiPhotonCandidate> diphoPtr = diphotonPtrs[0];
-        diPhotonJetsInfo.dipho_mass                 = diphoPtr->mass();
-        diPhotonJetsInfo.dipho_pt                   = diphoPtr->pt();
-        diPhotonJetsInfo.dipho_leadPt               = diphoPtr->leadingPhoton()->pt();
-        diPhotonJetsInfo.dipho_leadEta              = diphoPtr->leadingPhoton()->eta();
-        diPhotonJetsInfo.dipho_leadPhi              = diphoPtr->leadingPhoton()->phi();
-        diPhotonJetsInfo.dipho_leadE                = diphoPtr->leadingPhoton()->energy();
-        diPhotonJetsInfo.dipho_leadsigEOverE        = diphoPtr->leadingPhoton()->sigEOverE();
-        diPhotonJetsInfo.dipho_leadR9               = diphoPtr->leadingPhoton()->full5x5_r9();
-        diPhotonJetsInfo.dipho_leadsieie            = diphoPtr->leadingPhoton()->full5x5_sigmaIetaIeta();
-        diPhotonJetsInfo.dipho_leadhoe              = diphoPtr->leadingPhoton()->hadronicOverEm();
-        diPhotonJetsInfo.dipho_leadIDMVA            = diphoPtr->leadingView()->phoIdMvaWrtChosenVtx();
-        diPhotonJetsInfo.dipho_leadGenMatch         = (int) diphoPtr->leadingPhoton()->hasMatchedGenPhoton();
-        diPhotonJetsInfo.dipho_leadGenMatchType     = diphoPtr->leadingPhoton()->genMatchType();//enum mcMatch_t { kUnkown = 0, kPrompt, kFake  };
-        diPhotonJetsInfo.dipho_subleadPt            = diphoPtr->subLeadingPhoton()->pt();
-        diPhotonJetsInfo.dipho_subleadEta           = diphoPtr->subLeadingPhoton()->eta();
-        diPhotonJetsInfo.dipho_subleadPhi           = diphoPtr->subLeadingPhoton()->phi();
-        diPhotonJetsInfo.dipho_subleadE             = diphoPtr->subLeadingPhoton()->energy();
-        diPhotonJetsInfo.dipho_subleadsigEOverE     = diphoPtr->subLeadingPhoton()->sigEOverE();
-        diPhotonJetsInfo.dipho_subleadR9            = diphoPtr->subLeadingPhoton()->full5x5_r9();
-        diPhotonJetsInfo.dipho_subleadsieie         = diphoPtr->subLeadingPhoton()->full5x5_sigmaIetaIeta();
-        diPhotonJetsInfo.dipho_subleadhoe           = diphoPtr->subLeadingPhoton()->hadronicOverEm();
-        diPhotonJetsInfo.dipho_subleadIDMVA         = diphoPtr->subLeadingView()->phoIdMvaWrtChosenVtx();
-        diPhotonJetsInfo.dipho_subleadGenMatch      = (int) diphoPtr->subLeadingPhoton()->hasMatchedGenPhoton();
-        diPhotonJetsInfo.dipho_subleadGenMatchType  = diphoPtr->subLeadingPhoton()->genMatchType();
+        const Ptr<flashgg::DiPhotonCandidate> diphoPtr = diphotonPtrs[0];
+        dataformat.dipho_mass                 = diphoPtr->mass();
+        dataformat.dipho_pt                   = diphoPtr->pt();
+        dataformat.dipho_leadPt               = diphoPtr->leadingPhoton()->pt();
+        dataformat.dipho_leadEta              = diphoPtr->leadingPhoton()->eta();
+        dataformat.dipho_leadPhi              = diphoPtr->leadingPhoton()->phi();
+        dataformat.dipho_leadE                = diphoPtr->leadingPhoton()->energy();
+        dataformat.dipho_leadsigEOverE        = diphoPtr->leadingPhoton()->sigEOverE();
+        dataformat.dipho_leadR9               = diphoPtr->leadingPhoton()->full5x5_r9();
+        dataformat.dipho_leadsieie            = diphoPtr->leadingPhoton()->full5x5_sigmaIetaIeta();
+        dataformat.dipho_leadhoe              = diphoPtr->leadingPhoton()->hadronicOverEm();
+        dataformat.dipho_leadIDMVA            = diphoPtr->leadingView()->phoIdMvaWrtChosenVtx();
+        dataformat.dipho_leadhasPixelSeed     = diphoPtr->leadingPhoton()->hasPixelSeed();
+        dataformat.dipho_leadGenMatch         = diphoPtr->leadingPhoton()->hasMatchedGenPhoton();
+        dataformat.dipho_leadGenMatchType     = diphoPtr->leadingPhoton()->genMatchType();//enum mcMatch_t { kUnkown = 0, kPrompt, kFake  };
+        dataformat.dipho_subleadPt            = diphoPtr->subLeadingPhoton()->pt();
+        dataformat.dipho_subleadEta           = diphoPtr->subLeadingPhoton()->eta();
+        dataformat.dipho_subleadPhi           = diphoPtr->subLeadingPhoton()->phi();
+        dataformat.dipho_subleadE             = diphoPtr->subLeadingPhoton()->energy();
+        dataformat.dipho_subleadsigEOverE     = diphoPtr->subLeadingPhoton()->sigEOverE();
+        dataformat.dipho_subleadR9            = diphoPtr->subLeadingPhoton()->full5x5_r9();
+        dataformat.dipho_subleadsieie         = diphoPtr->subLeadingPhoton()->full5x5_sigmaIetaIeta();
+        dataformat.dipho_subleadhoe           = diphoPtr->subLeadingPhoton()->hadronicOverEm();
+        dataformat.dipho_subleadIDMVA         = diphoPtr->subLeadingView()->phoIdMvaWrtChosenVtx();
+        dataformat.dipho_subleadhasPixelSeed  = diphoPtr->subLeadingPhoton()->hasPixelSeed();
+        dataformat.dipho_subleadGenMatch      = diphoPtr->subLeadingPhoton()->hasMatchedGenPhoton();
+        dataformat.dipho_subleadGenMatchType  = diphoPtr->subLeadingPhoton()->genMatchType();
+        dataformat.dipho_SelectedVz           = diphoPtr->vtx()->position().z();
+        dataformat.dipho_GenVz                = diphoPtr->genPV().z();
 
-        //cout << diphoPtr->weight("FracRVWeightDown01sigma") <<"  " <<diphoPtr->centralWeight() << "  " << diphoPtr->weight("FracRVWeightUp01sigma") << endl;
-        //cout << diphoPtr->weight("electronVetoSFDown01sigma") <<"  " <<diphoPtr->centralWeight() << "  " << diphoPtr->weight("electronVetoSFUp01sigma") << endl;
-        //cout << diphoPtr->weight("ShowerShapeHighR9EBUp01sigma") <<"  " <<diphoPtr->centralWeight() << "  " << diphoPtr->weight("ShowerShapeHighR9EBDown01sigma") << endl;
+        int Nelecs = 0;
+        for ( const auto& it_elec : electrons->ptrs() ) {
 
-        diPhotonJetsInfo.selectedvz = diphoPtr->vtx()->position().z();
-        diPhotonJetsInfo.genvz = diphoPtr->genPV().z();
+            double elecEta = fabs( it_elec->superCluster()->eta() );
+            if ( elecEta > 2.5 || ( elecEta > 1.4442 && elecEta < 1.566 ) ) continue;
+
+            dataformat.elecs_Charge              .emplace_back( it_elec->charge() );
+            dataformat.elecs_Pt                  .emplace_back( it_elec->pt() );
+            dataformat.elecs_Eta                 .emplace_back( it_elec->eta() );
+            dataformat.elecs_Phi                 .emplace_back( it_elec->phi() );
+            dataformat.elecs_Energy              .emplace_back( it_elec->energy() );
+            dataformat.elecs_EtaSC               .emplace_back( it_elec->superCluster()->eta() );
+            dataformat.elecs_PhiSC               .emplace_back( it_elec->superCluster()->phi() );
+            //dataformat.elecs_GsfTrackDz          .emplace_back( it_elec->gsfTrack().isNonnull() ? it_elec->gsfTrack()->dz( diphoPtr->vtx()->position() ) : -999. );
+            //dataformat.elecs_GsfTrackDxy         .emplace_back( it_elec->gsfTrack().isNonnull() ? it_elec->gsfTrack()->dxy( diphoPtr->vtx()->position() ): -999. );
+            dataformat.elecs_EGMCutBasedIDVeto   .emplace_back( it_elec->passVetoId() );
+            dataformat.elecs_EGMCutBasedIDLoose  .emplace_back( it_elec->passLooseId() );
+            dataformat.elecs_EGMCutBasedIDMedium .emplace_back( it_elec->passMediumId() );
+            dataformat.elecs_EGMCutBasedIDTight  .emplace_back( it_elec->passTightId() );
+            dataformat.elecs_fggPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.2, 0.35, 5.0 ) );
+            dataformat.elecs_tmpPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.4, 0.4, 5.0 ) );
+
+            //if ( !iEvent.isRealData() ) {
+            //    const reco::GenParticle* gen = it_elec->genLepton();
+            //    if ( gen != nullptr ) {
+            //        dataformat.elecs_GenMatch .emplace_back( true );
+            //        dataformat.elecs_GenPdgID .emplace_back( gen->pdgId() );
+            //        dataformat.elecs_GenPt    .emplace_back( gen->pt() );
+            //        dataformat.elecs_GenEta   .emplace_back( gen->eta() );
+            //        dataformat.elecs_GenPhi   .emplace_back( gen->phi() );
+            //    } else {
+            //        dataformat.elecs_GenMatch .emplace_back( false );
+            //        dataformat.elecs_GenPdgID .emplace_back( 0 );
+            //        dataformat.elecs_GenPt    .emplace_back( -999. );
+            //        dataformat.elecs_GenEta   .emplace_back( -999. );
+            //        dataformat.elecs_GenPhi   .emplace_back( -999. );
+            //    }
+            //}
+
+            Nelecs++;
+        }
+        dataformat.elecs_size = Nelecs;
 
 
-        //const std::vector<edm::Ptr<flashgg::Electron> > electronPtrs = electrons->ptrs();
-        //for( const auto it : electronPtrs) cout << "electron  : " << it -> pt() << endl;
+        double Nmuons = 0;
+        for ( const auto& it_muon : muons->ptrs() ) {
+            if ( !it_muon->passed(reco::Muon::CutBasedIdLoose) ) continue;
+            if ( fabs( it_muon->eta() ) > 2.4 ) continue;
 
-        //const std::vector<edm::Ptr<flashgg::Muon> > muonPtrs = muons->ptrs();
-        //for( const auto it : muonPtrs) cout << "muon  : " << it -> pt() << endl;
+            float dRPho1Muon = reco::deltaR( it_muon->eta(), it_muon->phi(), dataformat.dipho_leadEta, dataformat.dipho_leadPhi );
+            float dRPho2Muon = reco::deltaR( it_muon->eta(), it_muon->phi(), dataformat.dipho_subleadEta, dataformat.dipho_subleadPhi );
+            if ( dRPho1Muon < 0.2 || dRPho2Muon < 0.2 ) continue;
 
-        //const std::vector<edm::Ptr<flashgg::Met> > metPtr = met->ptrs();
-        //for( const auto it : metPtr) cout << "met  : " << it -> pt() << endl;
+            dataformat.muons_Charge                  .emplace_back( it_muon->charge() );
+            dataformat.muons_MuonType                .emplace_back( it_muon->type() );
+            dataformat.muons_Pt                      .emplace_back( it_muon->pt() );
+            dataformat.muons_Eta                     .emplace_back( it_muon->eta() );
+            dataformat.muons_Phi                     .emplace_back( it_muon->phi() );
+            dataformat.muons_Energy                  .emplace_back( it_muon->energy() );
+            dataformat.muons_BestTrackDz             .emplace_back( it_muon->muonBestTrack()->dz( diphoPtr->vtx()->position() ) );
+            dataformat.muons_BestTrackDxy            .emplace_back( it_muon->muonBestTrack()->dxy( diphoPtr->vtx()->position() ) );
+            dataformat.muons_CutBasedIdMedium        .emplace_back( it_muon->passed(reco::Muon::CutBasedIdMedium) );
+            dataformat.muons_CutBasedIdTight         .emplace_back( muon::isTightMuon( *it_muon, *(diphoPtr->vtx()) ) );
+            dataformat.muons_PFIsoDeltaBetaCorrR04   .emplace_back( it_muon->fggPFIsoSumRelR04() );
+            dataformat.muons_TrackerBasedIsoR03      .emplace_back( it_muon->fggTrkIsoSumRelR03() );
 
+            //if ( !iEvent.isRealData() ) {
+            //    const reco::GenParticle* gen = it_muon->genLepton();
+            //    if ( gen != nullptr ) {
+            //        dataformat.muons_GenMatch .emplace_back( true );
+            //        dataformat.muons_GenPdgID .emplace_back( gen->pdgId() );
+            //        dataformat.muons_GenPt    .emplace_back( gen->pt() );
+            //        dataformat.muons_GenEta   .emplace_back( gen->eta() );
+            //        dataformat.muons_GenPhi   .emplace_back( gen->phi() );
+            //    } else {
+            //        dataformat.muons_GenMatch .emplace_back( false );
+            //        dataformat.muons_GenPdgID .emplace_back( 0 );
+            //        dataformat.muons_GenPt    .emplace_back( -999. );
+            //        dataformat.muons_GenEta   .emplace_back( -999. );
+            //        dataformat.muons_GenPhi   .emplace_back( -999. );
+            //    }
+            //}
 
+            Nmuons++;
+        }
+        dataformat.muons_size = Nmuons;
 
+        int Njets = 0;
         unsigned int jetCollectionIndex = diphoPtr->jetCollectionIndex();
-        int Njet = 0;
+        for ( const auto& it_jet : Jets[jetCollectionIndex]->ptrs() ) {
+            if ( !it_jet->passesJetID(flashgg::Tight2017) ) continue;
+            if ( fabs( it_jet->eta() ) > 4.7 ) { continue; }
 
-        for(unsigned int jetLoop = 0; jetLoop < Jets[jetCollectionIndex]->size(); jetLoop++) {
-            Ptr<flashgg::Jet> jet = Jets[jetCollectionIndex]->ptrAt(jetLoop);
-            if ( !jet->passesJetID(flashgg::Tight2017) ) continue;
-            if( fabs( jet->eta() ) > 4.7 ) { continue; }
+            float dRPho1Jet = reco::deltaR( it_jet->eta(), it_jet->phi(), dataformat.dipho_leadEta, dataformat.dipho_leadPhi );
+            float dRPho2Jet = reco::deltaR( it_jet->eta(), it_jet->phi(), dataformat.dipho_subleadEta, dataformat.dipho_subleadPhi );
+            if ( dRPho1Jet < 0.4 || dRPho2Jet < 0.4 ) continue;
 
-            float dPhi = deltaPhi( jet->phi(), diPhotonJetsInfo.dipho_leadPhi );
-            float dEta = jet->eta() - diPhotonJetsInfo.dipho_leadEta;
-            if( sqrt( dPhi * dPhi + dEta * dEta ) < 0.4 ) { continue; }
+            dataformat.jets_Pt                            .emplace_back( it_jet->pt() );
+            dataformat.jets_Eta                           .emplace_back( it_jet->eta() );
+            dataformat.jets_Phi                           .emplace_back( it_jet->phi() );
+            dataformat.jets_Mass                          .emplace_back( it_jet->mass() );
+            dataformat.jets_Energy                        .emplace_back( it_jet->energy() );
+            dataformat.jets_PtRaw                         .emplace_back( it_jet->correctedJet( "Uncorrected" ).pt() );
+            dataformat.jets_QGL                           .emplace_back( it_jet->QGL() );
+            dataformat.jets_RMS                           .emplace_back( it_jet->rms() );
+            dataformat.jets_puJetIdMVA                    .emplace_back( it_jet->puJetIdMVA() );
+            dataformat.jets_GenJetMatch                   .emplace_back( it_jet->hasGenMatch() );
+            dataformat.jets_pfCombinedInclusiveSecondaryVertexV2BJetTags        
+                                                          .emplace_back( it_jet->bDiscriminator( "pfCombinedInclusiveSecondaryVertexV2BJetTags" ) );
+            dataformat.jets_pfCombinedMVAV2BJetTags       .emplace_back( it_jet->bDiscriminator( "pfCombinedMVAV2BJetTags" ) );
+            dataformat.jets_pfDeepCSVJetTags_probb        .emplace_back( it_jet->bDiscriminator( "pfDeepCSVJetTags:probb" ) );
+            dataformat.jets_pfDeepCSVJetTags_probbb       .emplace_back( it_jet->bDiscriminator( "pfDeepCSVJetTags:probbb" ) );
+            dataformat.jets_pfDeepCSVJetTags_probc        .emplace_back( it_jet->bDiscriminator( "pfDeepCSVJetTags:probc" ) );
+            dataformat.jets_pfDeepCSVJetTags_probudsg     .emplace_back( it_jet->bDiscriminator( "pfDeepCSVJetTags:probudsg" ) );
 
-            dPhi = deltaPhi( jet->phi(), diPhotonJetsInfo.dipho_subleadPhi );
-            dEta = jet->eta() - diPhotonJetsInfo.dipho_subleadEta;
-            if( sqrt( dPhi * dPhi + dEta * dEta ) < 0.4 ) { continue; }
-
-            Njet++;
-
-            diPhotonJetsInfo.jets_Pt.emplace_back  ( jet->pt()   );
-            diPhotonJetsInfo.jets_Eta.emplace_back ( jet->eta()  );
-            diPhotonJetsInfo.jets_Phi.emplace_back ( jet->phi()  );
-            diPhotonJetsInfo.jets_Mass.emplace_back( jet->mass() );
-
-            diPhotonJetsInfo.jets_QGL.emplace_back( jet->QGL() );
-            diPhotonJetsInfo.jets_RMS.emplace_back( jet->rms() );
-            diPhotonJetsInfo.jets_puJetIdMVA.emplace_back( jet->puJetIdMVA() );
-            diPhotonJetsInfo.jets_GenMatch.emplace_back( (int)jet->hasGenMatch() );
-
+            Njets++;
         }//jet loop
-        diPhotonJetsInfo.jets_size = Njet;
+        dataformat.jets_size = Njets;
+
+        edm::Ptr<flashgg::Met> theMet = met->ptrAt( 0 );
+        dataformat.met_Pt     = theMet->pt();
+        dataformat.met_Phi    = theMet->phi();
+        dataformat.met_Px     = theMet->px();
+        dataformat.met_Py     = theMet->py();
+        dataformat.met_SumET  = theMet->sumEt();
 
     }
 
     if (!iEvent.isRealData()) {
         for( unsigned int PVI = 0; PVI < pileupInfo->size(); ++PVI ) {
             Int_t pu_bunchcrossing = pileupInfo->ptrAt( PVI )->getBunchCrossing();
-            if( pu_bunchcrossing == 0 ) {
-                diPhotonJetsInfo.nPu = pileupInfo->ptrAt( PVI )->getTrueNumInteractions();
-                break;
-            }
+            if( pu_bunchcrossing == 0 ) { dataformat.NPu = pileupInfo->ptrAt( PVI )->getTrueNumInteractions(); break; }
         }
+
+        dataformat.genweight     = genEventInfo->weight();
+
+        int NGenParticles = 0;
+        const std::vector<edm::Ptr<reco::GenParticle> > genParticlesPtrs = genParticles->ptrs();
+        for (const auto& it_gen : genParticles->ptrs()) {
+            if ( abs(it_gen->pdgId()) > 25) continue;
+            if ( it_gen->status() > 30 ) continue;
+            if ( it_gen->pdgId() == 22      && it_gen->status() == 1 && !(it_gen->pt() > 10 || it_gen->isPromptFinalState())) continue;
+            if ( abs(it_gen->pdgId()) == 11 && it_gen->status() == 1 && !(it_gen->pt() > 3  || it_gen->isPromptFinalState())) continue;
+
+            dataformat.GenParticles_Pt     .emplace_back( it_gen->pt() );
+            dataformat.GenParticles_Eta    .emplace_back( it_gen->eta() );
+            dataformat.GenParticles_Phi    .emplace_back( it_gen->phi() );
+            dataformat.GenParticles_Mass   .emplace_back( it_gen->mass() );
+            dataformat.GenParticles_PdgID  .emplace_back( it_gen->pdgId() );
+            dataformat.GenParticles_Status .emplace_back( it_gen->status() );
+            dataformat.GenParticles_nMo    .emplace_back( it_gen->numberOfMothers() );
+            dataformat.GenParticles_nDa    .emplace_back( it_gen->numberOfDaughters() );
+
+            NGenParticles++;
+        }
+
+        dataformat.GenParticles_size = NGenParticles;
 
         if(doHTXS_) {
-            diPhotonJetsInfo.HTXSstage0cat = htxsClassification->stage0_cat;
-            diPhotonJetsInfo.HTXSstage1cat = htxsClassification->stage1_cat_pTjet30GeV;
-            diPhotonJetsInfo.HTXSnjets     = htxsClassification->jets30.size();
-            diPhotonJetsInfo.HTXSpTH       = htxsClassification->p4decay_higgs.pt();
-            diPhotonJetsInfo.HTXSpTV       = htxsClassification->p4decay_V.pt();
+            dataformat.HTXSstage0cat = htxsClassification->stage0_cat;
+            dataformat.HTXSstage1cat = htxsClassification->stage1_cat_pTjet30GeV;
+            dataformat.HTXSnjets     = htxsClassification->jets30.size();
+            dataformat.HTXSpTH       = htxsClassification->p4decay_higgs.pt();
+            dataformat.HTXSpTV       = htxsClassification->p4decay_V.pt();
         }
-        diPhotonJetsInfo.genweight     = genEventInfo->weight();
-        //const std::vector<edm::Ptr<reco::GenParticle> > genParticlesPtrs = genParticles->ptrs();
+
     }
 
-    DiPhotonJetsTree->Fill();
+    dataformat.InfoFill();
 
 }
 
@@ -371,122 +427,12 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
 void
 flashggAnalysisTreeMakerStd::beginJob()
 {
-    DiPhotonJetsTree = fs_->make<TTree>( "DiPhotonJetsTree", "DiPhotonJets tree" );
-
-    DiPhotonJetsTree->Branch( "nPu"              , &diPhotonJetsInfo.nPu             , "nPu/I"            );
-    DiPhotonJetsTree->Branch( "genvz"            , &diPhotonJetsInfo.genvz           , "genvz/F"          );
-    DiPhotonJetsTree->Branch( "genweight"        , &diPhotonJetsInfo.genweight       , "genweight/F"      );
-
-    DiPhotonJetsTree->Branch( "rho"              , &diPhotonJetsInfo.rho             , "rho/F"            );
-    DiPhotonJetsTree->Branch( "pvz"              , &diPhotonJetsInfo.pvz             , "pvz/F"            );
-    DiPhotonJetsTree->Branch( "selectedvz"       , &diPhotonJetsInfo.selectedvz      , "selectedvz/F"     );
-    DiPhotonJetsTree->Branch( "nvertex"          , &diPhotonJetsInfo.nvertex         , "nvertex/I"        );
-    DiPhotonJetsTree->Branch( "BSsigmaz"         , &diPhotonJetsInfo.BSsigmaz        , "BSsigmaz/F"       );
-    DiPhotonJetsTree->Branch( "passTrigger"      , &diPhotonJetsInfo.passTrigger     , "passTrigger/I"    );
-
-    DiPhotonJetsTree->Branch( "dipho_mass"                    , &diPhotonJetsInfo.dipho_mass                   , "dipho_mass/F"                 );
-    DiPhotonJetsTree->Branch( "dipho_pt"                      , &diPhotonJetsInfo.dipho_pt                     , "dipho_pt/F"                   );
-    DiPhotonJetsTree->Branch( "dipho_leadPt"                  , &diPhotonJetsInfo.dipho_leadPt                 , "dipho_leadPt/F"               );
-    DiPhotonJetsTree->Branch( "dipho_leadEta"                 , &diPhotonJetsInfo.dipho_leadEta                , "dipho_leadEta/F"              );
-    DiPhotonJetsTree->Branch( "dipho_leadPhi"                 , &diPhotonJetsInfo.dipho_leadPhi                , "dipho_leadPhi/F"              );
-    DiPhotonJetsTree->Branch( "dipho_leadE"                   , &diPhotonJetsInfo.dipho_leadE                  , "dipho_leadE/F"                );
-    DiPhotonJetsTree->Branch( "dipho_leadsigEOverE"           , &diPhotonJetsInfo.dipho_leadsigEOverE          , "dipho_leadsigEOverE/F"        );
-    DiPhotonJetsTree->Branch( "dipho_leadR9"                  , &diPhotonJetsInfo.dipho_leadR9                 , "dipho_leadR9/F"               );
-    DiPhotonJetsTree->Branch( "dipho_leadsieie"               , &diPhotonJetsInfo.dipho_leadsieie              , "dipho_leadsieie/F"            );
-    DiPhotonJetsTree->Branch( "dipho_leadhoe"                 , &diPhotonJetsInfo.dipho_leadhoe                , "dipho_leadhoe/F"              );
-    DiPhotonJetsTree->Branch( "dipho_leadIDMVA"               , &diPhotonJetsInfo.dipho_leadIDMVA              , "dipho_leadIDMVA/F"            );
-    DiPhotonJetsTree->Branch( "dipho_leadGenMatch"            , &diPhotonJetsInfo.dipho_leadGenMatch           , "dipho_leadGenMatch/I"         );
-    DiPhotonJetsTree->Branch( "dipho_leadGenMatchType"        , &diPhotonJetsInfo.dipho_leadGenMatchType       , "dipho_leadGenMatchType/I"     );
-    DiPhotonJetsTree->Branch( "dipho_subleadPt"               , &diPhotonJetsInfo.dipho_subleadPt              , "dipho_subleadPt/F"            );
-    DiPhotonJetsTree->Branch( "dipho_subleadEta"              , &diPhotonJetsInfo.dipho_subleadEta             , "dipho_subleadEta/F"           );
-    DiPhotonJetsTree->Branch( "dipho_subleadPhi"              , &diPhotonJetsInfo.dipho_subleadPhi             , "dipho_subleadPhi/F"           );
-    DiPhotonJetsTree->Branch( "dipho_subleadE"                , &diPhotonJetsInfo.dipho_subleadE               , "dipho_subleadE/F"             );
-    DiPhotonJetsTree->Branch( "dipho_subleadsigEOverE"        , &diPhotonJetsInfo.dipho_subleadsigEOverE       , "dipho_subleadsigEOverE/F"     );
-    DiPhotonJetsTree->Branch( "dipho_subleadR9"               , &diPhotonJetsInfo.dipho_subleadR9              , "dipho_subleadR9/F"            );
-    DiPhotonJetsTree->Branch( "dipho_subleadsieie"            , &diPhotonJetsInfo.dipho_subleadsieie           , "dipho_subleadsieie/F"         );
-    DiPhotonJetsTree->Branch( "dipho_subleadhoe"              , &diPhotonJetsInfo.dipho_subleadhoe             , "dipho_subleadhoe/F"           );
-    DiPhotonJetsTree->Branch( "dipho_subleadIDMVA"            , &diPhotonJetsInfo.dipho_subleadIDMVA           , "dipho_subleadIDMVA/F"         );
-    DiPhotonJetsTree->Branch( "dipho_subleadGenMatch"         , &diPhotonJetsInfo.dipho_subleadGenMatch        , "dipho_subleadGenMatch/I"      );
-    DiPhotonJetsTree->Branch( "dipho_subleadGenMatchType"     , &diPhotonJetsInfo.dipho_subleadGenMatchType    , "dipho_subleadGenMatchType/I"  );
-
-    DiPhotonJetsTree->Branch( "jets_size"        , &diPhotonJetsInfo.jets_size      , "jets_size/I" );
-    DiPhotonJetsTree->Branch( "jets_Pt"          , &diPhotonJetsInfo.jets_Pt        );
-    DiPhotonJetsTree->Branch( "jets_Eta"         , &diPhotonJetsInfo.jets_Eta       );
-    DiPhotonJetsTree->Branch( "jets_Phi"         , &diPhotonJetsInfo.jets_Phi       );
-    DiPhotonJetsTree->Branch( "jets_Mass"        , &diPhotonJetsInfo.jets_Mass      );
-    DiPhotonJetsTree->Branch( "jets_QGL"         , &diPhotonJetsInfo.jets_QGL       );
-    DiPhotonJetsTree->Branch( "jets_RMS"         , &diPhotonJetsInfo.jets_RMS       );
-    DiPhotonJetsTree->Branch( "jets_puJetIdMVA"  , &diPhotonJetsInfo.jets_puJetIdMVA);
-    DiPhotonJetsTree->Branch( "jets_GenMatch"    , &diPhotonJetsInfo.jets_GenMatch  );
-
-    DiPhotonJetsTree->Branch( "HTXSstage0cat"   , &diPhotonJetsInfo.HTXSstage0cat  , "HTXSstage0cat/I" ); 
-    DiPhotonJetsTree->Branch( "HTXSstage1cat"   , &diPhotonJetsInfo.HTXSstage1cat  , "HTXSstage1cat/I" ); 
-    DiPhotonJetsTree->Branch( "HTXSnjets"       , &diPhotonJetsInfo.HTXSnjets      , "HTXSnjets/I"     ); 
-    DiPhotonJetsTree->Branch( "HTXSpTH"         , &diPhotonJetsInfo.HTXSpTH        , "HTXSpTH/F"       ); 
-    DiPhotonJetsTree->Branch( "HTXSpTV"         , &diPhotonJetsInfo.HTXSpTV        , "HTXSpTV/F"       ); 
-
+    dataformat.RegisterTree( fs_->make<TTree>( "flashggStdTree", "flashgg Standard Analysis Tree" ) );
 }
 
 void
 flashggAnalysisTreeMakerStd::endJob()
 {
-}
-
-void
-flashggAnalysisTreeMakerStd::initEventStructure()
-{
-
-    diPhotonJetsInfo.nPu             = -999;
-    diPhotonJetsInfo.genvz           = -999.;
-    diPhotonJetsInfo.genweight       = -999.;
-
-    diPhotonJetsInfo.pvz             = -999.;
-    diPhotonJetsInfo.selectedvz      = -999.;
-    diPhotonJetsInfo.nvertex         = -999;
-    diPhotonJetsInfo.BSsigmaz        = -999.;
-    diPhotonJetsInfo.passTrigger     = 0;
-
-    diPhotonJetsInfo.dipho_mass                     = -999.;
-    diPhotonJetsInfo.dipho_pt                       = -999.;
-    diPhotonJetsInfo.dipho_leadPt                   = -999.; 
-    diPhotonJetsInfo.dipho_leadEta                  = -999.; 
-    diPhotonJetsInfo.dipho_leadPhi                  = -999.; 
-    diPhotonJetsInfo.dipho_leadE                    = -999.; 
-    diPhotonJetsInfo.dipho_leadsigEOverE            = -999.; 
-    diPhotonJetsInfo.dipho_leadR9                   = -999.; 
-    diPhotonJetsInfo.dipho_leadsieie                = -999.; 
-    diPhotonJetsInfo.dipho_leadhoe                  = -999.; 
-    diPhotonJetsInfo.dipho_leadIDMVA                = -999.; 
-    diPhotonJetsInfo.dipho_leadGenMatch             = -999; 
-    diPhotonJetsInfo.dipho_leadGenMatchType         = -999; 
-    diPhotonJetsInfo.dipho_subleadPt                = -999.; 
-    diPhotonJetsInfo.dipho_subleadEta               = -999.; 
-    diPhotonJetsInfo.dipho_subleadPhi               = -999.; 
-    diPhotonJetsInfo.dipho_subleadE                 = -999.; 
-    diPhotonJetsInfo.dipho_subleadsigEOverE         = -999.; 
-    diPhotonJetsInfo.dipho_subleadR9                = -999.; 
-    diPhotonJetsInfo.dipho_subleadsieie             = -999.; 
-    diPhotonJetsInfo.dipho_subleadhoe               = -999.; 
-    diPhotonJetsInfo.dipho_subleadIDMVA             = -999.; 
-    diPhotonJetsInfo.dipho_subleadGenMatch          = -999; 
-    diPhotonJetsInfo.dipho_subleadGenMatchType      = -999; 
-    
-    diPhotonJetsInfo.jets_size   = -999;
-    diPhotonJetsInfo.jets_Pt        .clear(); 
-    diPhotonJetsInfo.jets_Eta       .clear(); 
-    diPhotonJetsInfo.jets_Phi       .clear(); 
-    diPhotonJetsInfo.jets_Mass      .clear(); 
-    diPhotonJetsInfo.jets_QGL       .clear(); 
-    diPhotonJetsInfo.jets_RMS       .clear(); 
-    diPhotonJetsInfo.jets_puJetIdMVA.clear(); 
-    diPhotonJetsInfo.jets_GenMatch  .clear();
-
-    diPhotonJetsInfo.HTXSstage0cat = -999; 
-    diPhotonJetsInfo.HTXSstage1cat = -999; 
-    diPhotonJetsInfo.HTXSnjets     = -999; 
-    diPhotonJetsInfo.HTXSpTH       = -999.; 
-    diPhotonJetsInfo.HTXSpTV       = -999.; 
-
 }
 
 void
@@ -498,7 +444,6 @@ flashggAnalysisTreeMakerStd::fillDescriptions( edm::ConfigurationDescriptions &d
     desc.setUnknown();
     descriptions.addDefault( desc );
 }
-
 
 DEFINE_FWK_MODULE( flashggAnalysisTreeMakerStd );
 // Local Variables:

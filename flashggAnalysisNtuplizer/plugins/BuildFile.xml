@@ -10,5 +10,6 @@
 <use name="CommonTools/CandUtils"/>
 <use name="flashgg/DataFormats"/>
 <use name="flashgg/MicroAOD"/>
+<use name="flashgg/Taggers"/>
 <use name="HLTrigger/HLTcore"/>
 <flags EDM_PLUGIN="1"/>

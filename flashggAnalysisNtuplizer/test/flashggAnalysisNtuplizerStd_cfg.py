@@ -4,7 +4,7 @@ import FWCore.ParameterSet.VarParsing as opts
 
 options = opts.VarParsing ('analysis')
 options.register('runMiniAOD',
-                 True,
+                 False,
                  opts.VarParsing.multiplicity.singleton,
                  opts.VarParsing.varType.bool,
                  'runMiniAOD'
@@ -41,15 +41,16 @@ else:
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(400) )
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32( 1 )
-process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32( 100 )
+#process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
 process.source = cms.Source ("PoolSource",
         fileNames = cms.untracked.vstring(
 #'file:myMicroAODOutputFile_1.root'
 #'file:myMicroAODOutputFile_4.root'
 #'file:data.root'
-'/store/mc/RunIIFall17MiniAODv2/GluGluHToGG_M125_13TeV_amcatnloFXFX_pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/044F95FB-A342-E811-907F-5065F3816251.root'
+#'/store/mc/RunIIFall17MiniAODv2/GluGluHToGG_M125_13TeV_amcatnloFXFX_pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/044F95FB-A342-E811-907F-5065F3816251.root'
+'file:tth.root'
 #'/store/data/Run2017D/DoubleEG/MINIAOD/31Mar2018-v1/00000/002F7CD1-9D37-E811-A03E-B499BAABCF1A.root'
 #'/store/group/phys_higgs/cmshgg/sethzenz/flashgg/RunIIFall17-3_1_0/3_1_0/GluGluHToGG_M125_13TeV_amcatnloFXFX_pythia8_PSWeights/RunIIFall17-3_1_0-3_1_0-v0-RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14_ext1-v1/180605_202241/0000/myMicroAODOutputFile_3.root'
 #'/store/mc/RunIIFall17MiniAODv2/GluGluHToGG_M125_13TeV_amcatnloFXFX_pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/EEC90FD7-A242-E811-AA78-EC0D9A8225FE.root'
@@ -145,14 +146,17 @@ process.flashggNtuple = cms.EDAnalyzer('flashggAnalysisTreeMakerStd',
                                        inputTagJets            = UnpackedJetCollectionVInputTag,
                                        ElectronTag             = cms.InputTag('flashggSelectedElectrons'),
                                        MuonTag                 = cms.InputTag('flashggSelectedMuons'),
-                                       MetTag                  = cms.InputTag('flashggMets'),
+                                       #MetTag                  = cms.InputTag('flashggMets'),
+                                       MetTag                  = cms.InputTag('flashggMetsCorr'),
                                        VertexTag               = cms.InputTag('offlineSlimmedPrimaryVertices'),
                                        BeamSpotTag             = cms.InputTag('offlineBeamSpot'),
                                        RhoTag                  = cms.InputTag('fixedGridRhoFastjetAll'),
                                        GenParticleTag          = cms.InputTag('flashggPrunedGenParticles'),
+                                       #GenParticleTag          = cms.InputTag('prunedGenParticles'),
                                        GenEventInfo            = cms.InputTag('generator'),
                                        PileUpTag               = cms.InputTag('slimmedAddPileupInfo'),
                                        TriggerTag              = cms.InputTag('TriggerResults::HLT'),
+                                       MetTriggerTag           = cms.InputTag('TriggerResults::PAT'),
                                        pathName                = cms.string("HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90"),
                                        doHTXS                  = cms.bool(options.doHTXS),
                                        HTXSTags                = HTXSInputTags
