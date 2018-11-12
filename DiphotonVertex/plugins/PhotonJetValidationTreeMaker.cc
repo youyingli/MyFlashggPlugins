@@ -16,6 +16,8 @@
 #include "flashgg/DataFormats/interface/PhotonJetCandidate.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "FWCore/Common/interface/TriggerNames.h"
+#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
 
 #include "TTree.h"
 
@@ -23,23 +25,11 @@
 
 // define the structures used to create tree branches and fill the trees
 
-
-struct GlobalInfo {
-    
-    int nvtx;
-    int nPu;
-    int nPuTrue;
-    float BSsigmaz;
-    int nphoj;
-    float evWeight;
-
-};
-
 struct PhotonJetInfo {
 
     int nvtx;
     int nPu;
-    int nPuTrue;
+    int passTrigger;
     float BSsigmaz;
     float genweight;
     float evWeight;
@@ -116,11 +106,11 @@ private:
     edm::EDGetTokenT<GenEventInfoProduct>                           genEventInfoToken_;
     edm::EDGetTokenT<reco::BeamSpot>                                beamSpotToken_;
     edm::EDGetTokenT<View<PileupSummaryInfo>>                       PileUpToken_;
+    edm::EDGetTokenT<edm::TriggerResults>                           triggerToken_;
+    std::string pathName_;
     double evWeight_;
 
-    TTree *GlobalTree;
     TTree *PhotonJetTree;
-    GlobalInfo globalInfo;
     PhotonJetInfo phojInfo;
 };
 
@@ -135,8 +125,10 @@ PhotonJetValidationTreeMaker::PhotonJetValidationTreeMaker( const edm::Parameter
     vertexToken_( consumes<View<reco::Vertex>>( iConfig.getParameter<InputTag> ( "vertexTag" ) ) ),
     genEventInfoToken_( consumes<GenEventInfoProduct>( iConfig.getParameter<InputTag> ( "GenEventInfo" ) ) ),
     beamSpotToken_( consumes<reco::BeamSpot>( iConfig.getParameter<InputTag>( "BeamSpotTag" ) ) ),
-    PileUpToken_( consumes<View<PileupSummaryInfo>>( iConfig.getParameter<InputTag> ( "PileUpTag" ) ) )
+    PileUpToken_( consumes<View<PileupSummaryInfo>>( iConfig.getParameter<InputTag> ( "PileUpTag" ) ) ),
+    triggerToken_( consumes< edm::TriggerResults >  ( iConfig.getParameter<InputTag> ( "TriggerTag"     ) ) )
 {
+    pathName_ = iConfig.getParameter<std::string>( "pathName" ) ;
     evWeight_   = iConfig.getParameter<double>( "evWeight" );
 }
 
@@ -159,9 +151,6 @@ PhotonJetValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::Even
     Handle<View<reco::Vertex>> VertexHandle_;
     iEvent.getByToken(vertexToken_, VertexHandle_);
  
-    Handle<View<PileupSummaryInfo>> PileUpHandle_;
-    iEvent.getByToken(PileUpToken_, PileUpHandle_);
-
     Handle<GenEventInfoProduct> GenInfoHandle_;
     iEvent.getByToken(genEventInfoToken_, GenInfoHandle_);
 
@@ -170,42 +159,62 @@ PhotonJetValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::Even
     double BSsigmaz = 0.;
     if( recoBeamSpotHandle.isValid() ) BSsigmaz = recoBeamSpotHandle->sigmaZ();
 
+    Handle<View<PileupSummaryInfo>> PileUpHandle_;
+    iEvent.getByToken(PileUpToken_, PileUpHandle_);
+ 
+    Handle< edm::TriggerResults > triggerHandle;
+    iEvent.getByToken(triggerToken_, triggerHandle);
+
+
     // ********************************************************************************
 
     initEventStructure();
 
-    globalInfo.BSsigmaz = BSsigmaz;
-    globalInfo.nvtx  = VertexHandle_->size();
-    globalInfo.nphoj = photonJets->size();
-    globalInfo.evWeight = evWeight_;
 
     if (!iEvent.isRealData()) {
         for( unsigned int PVI = 0; PVI < PileUpHandle_->size(); ++PVI ) {
             Int_t pu_bunchcrossing = PileUpHandle_->ptrAt( PVI )->getBunchCrossing();
             if( pu_bunchcrossing == 0 ) {
-                globalInfo.nPu = PileUpHandle_->ptrAt( PVI )->getPU_NumInteractions();
-                globalInfo.nPuTrue = PileUpHandle_->ptrAt( PVI )->getTrueNumInteractions();
+                phojInfo.nPu = PileUpHandle_->ptrAt( PVI )->getTrueNumInteractions();
                 break;
             }
         }
+        phojInfo.genweight = GenInfoHandle_->weight();
     }
-    GlobalTree->Fill();
 
-    // photon jet loop
-    for( size_t iphoj = 0; iphoj < photonJets->size(); iphoj++ ) {
-
-        Ptr<flashgg::PhotonJetCandidate> photonJet = photonJets->ptrAt(iphoj);
-
-        if (photonJet->nConv() != 1) continue;
-
-        phojInfo.BSsigmaz = globalInfo.BSsigmaz;
-        phojInfo.nvtx     = globalInfo.nvtx;
-        if (!iEvent.isRealData()) {
-            phojInfo.nPu      = globalInfo.nPu;
-            phojInfo.nPuTrue  = globalInfo.nPuTrue;
-            phojInfo.genweight= GenInfoHandle_ -> weight();
-            phojInfo.evWeight = evWeight_;
+    if (iEvent.isRealData()) {
+        phojInfo.passTrigger = 1;
+    } else {
+        const edm::TriggerNames &triggerNames = iEvent.triggerNames( *triggerHandle );
+                                                                                                             
+        map<string, int> triggerIndices;
+        for( unsigned int i = 0; i < triggerNames.triggerNames().size(); i++ ) {
+            std::string trimmedName = HLTConfigProvider::removeVersion( triggerNames.triggerName( i ) );
+            triggerIndices.emplace(trimmedName, triggerNames.triggerIndex( triggerNames.triggerName( i ) ));
         }
+                                                                                                             
+        for (const auto& it : triggerIndices) {
+            if (triggerHandle->accept(it.second)) {
+                if (it.first == pathName_) {phojInfo.passTrigger = 1; break;}
+            }
+        }
+    }
+
+    phojInfo.BSsigmaz = BSsigmaz;
+    phojInfo.nvtx  = VertexHandle_->size();
+    phojInfo.evWeight = evWeight_;
+
+    int phoj_index = -1;
+    for( size_t iphoj = 0; iphoj < photonJets->size(); iphoj++ ) {
+        Ptr<flashgg::PhotonJetCandidate> photonJet = photonJets->ptrAt(iphoj);
+        if (photonJet->nConv() != 1) continue;
+        phoj_index = iphoj;
+        break;
+    }
+
+    if (phoj_index != -1) {
+
+        Ptr<flashgg::PhotonJetCandidate> photonJet = photonJets->ptrAt(phoj_index);
 
         vector<int> pvVecNoJetTagged;
         for( int i = 0 ; i < (int)VertexHandle_->size() ; i++ ) {
@@ -218,23 +227,21 @@ PhotonJetValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::Even
         }
 
         int irand = -1;
-        if( pvVecNoJetTagged.size() > 1 ) { irand = rand() % pvVecNoJetTagged.size(); }
+        if( pvVecNoJetTagged.size() > 0 ) { irand = rand() % pvVecNoJetTagged.size(); }
  
         int randNoJetTaggedVtxIndex = -1;
         if( irand != -1 ) { randNoJetTaggedVtxIndex = pvVecNoJetTagged[irand]; }
 
         int irands = -1;
-        if( pvVecNoSelected.size() > 1 ) { irands = rand() % pvVecNoSelected.size(); }
+        if( pvVecNoSelected.size() > 0 ) { irands = rand() % pvVecNoSelected.size(); }
 
         int randNoSelectedVtxIndex = -1;
         if( irands != -1 ) { randNoSelectedVtxIndex = pvVecNoSelected[irands]; }
 
-
-        int JetTagVtxIndex = sortedIndex(photonJet->vertexIndexJet(), VertexHandle_->size(), photonJet);
-        int UnJetTagVtxIndex = sortedIndex(randNoJetTaggedVtxIndex, VertexHandle_->size(), photonJet);
-        int SelectedVtxIndex = sortedIndex(photonJet->vertexIndex(), VertexHandle_->size(), photonJet);
+        int JetTagVtxIndex     = sortedIndex(photonJet->vertexIndexJet(), VertexHandle_->size(), photonJet);
+        int UnJetTagVtxIndex   = sortedIndex(randNoJetTaggedVtxIndex, VertexHandle_->size(), photonJet);
+        int SelectedVtxIndex   = sortedIndex(photonJet->vertexIndex(), VertexHandle_->size(), photonJet);
         int UnSelectedVtxIndex = sortedIndex(randNoSelectedVtxIndex, VertexHandle_->size(), photonJet);
-
 
         phojInfo.JetTagVtxIndex     = photonJet->vertexIndexJet();
         phojInfo.JetTagVtxIDMva     = photonJet->mva(JetTagVtxIndex);
@@ -271,12 +278,9 @@ PhotonJetValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::Even
         phojInfo.UnSelectedvtx_ptBal          = photonJet->ptBal(UnSelectedVtxIndex);
         phojInfo.UnSelectedvtx_ptAsym         = photonJet->ptAsym(UnSelectedVtxIndex);
         phojInfo.UnSelectedvtx_pullConv       = photonJet->pullConv(UnSelectedVtxIndex);
+    }
 
-        PhotonJetTree->Fill();
-
-        break; // Only choose the first candidate
-
-    }  // end photon jet candidate loop
+    PhotonJetTree->Fill();
 
 }
 
@@ -284,38 +288,30 @@ PhotonJetValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::Even
 void
 PhotonJetValidationTreeMaker::beginJob()
 {
-    GlobalTree = fs_->make<TTree>( "GlobalTree", "global tree" );
-    GlobalTree->Branch( "BSsigmaz"  , &globalInfo.BSsigmaz,   "BSsigmaz/F" );
-    GlobalTree->Branch( "nvtx"      , &globalInfo.nvtx    ,   "nvtx/I"     );
-    GlobalTree->Branch( "nPu"       , &globalInfo.nPu     ,   "nPu/I"      );
-    GlobalTree->Branch( "nPuTrue"   , &globalInfo.nPuTrue ,   "nPuTrue/I"  );
-    GlobalTree->Branch( "nphoj"     , &globalInfo.nphoj   ,   "nphoj/I"    );
-    GlobalTree->Branch( "evWeight"     , &globalInfo.evWeight   ,   "evWeight/F"    );
-
     PhotonJetTree = fs_->make<TTree>( "PhotonJetTree", "photon-jet tree" );
-    PhotonJetTree->Branch( "BSsigmaz"           , &phojInfo.BSsigmaz        ,   "BSsigmaz/F"            );
-    PhotonJetTree->Branch( "nvtx"               , &phojInfo.nvtx            ,   "nvtx/I"                );
-    PhotonJetTree->Branch( "nPu"                , &phojInfo.nPu             ,   "nPu/I"                 );
-    PhotonJetTree->Branch( "nPuTrue"            , &phojInfo.nPuTrue         ,   "nPuTrue/I"             );
-    PhotonJetTree->Branch( "genweight"          , &phojInfo.genweight       ,   "genweight/F"           );
-    PhotonJetTree->Branch( "evWeight"           , &phojInfo.evWeight        ,   "evWeight/F"            );
-    PhotonJetTree->Branch( "JetTagVtxIndex"     , &phojInfo.JetTagVtxIndex  ,   "JetTagVtxIndex/I"      );
-    PhotonJetTree->Branch( "JetTagVtxIDMva"     , &phojInfo.JetTagVtxIDMva  ,   "JetTagVtxIDMva/F"      );
-    PhotonJetTree->Branch( "UnJetTagVtxIndex"   , &phojInfo.UnJetTagVtxIndex,   "UnJetTagVtxIndex/I"    );
-    PhotonJetTree->Branch( "UnJetTagVtxIDMva"   , &phojInfo.UnJetTagVtxIDMva,   "UnJetTagVtxIDMva/F"    );
-    PhotonJetTree->Branch( "SelectedvtxIndex"   , &phojInfo.SelectedvtxIndex,   "SelectedvtxIndex/I"    );
-    PhotonJetTree->Branch( "SelectedVtxIDMva"   , &phojInfo.SelectedVtxIDMva,   "SelectedVtxIDMva/F"    );
-    PhotonJetTree->Branch( "UnSelectedvtxIndex"   , &phojInfo.UnSelectedvtxIndex,   "UnSelectedvtxIndex/I"    );
-    PhotonJetTree->Branch( "UnSelectedVtxIDMva"   , &phojInfo.UnSelectedVtxIDMva,   "UnSelectedVtxIDMva/F"    );
-    PhotonJetTree->Branch( "dZfromRecoPV"       , &phojInfo.dZfromRecoPV    ,   "dZfromRecoPV/F"        );
-    PhotonJetTree->Branch( "nConv"              , &phojInfo.nConv           ,   "nConv/F"               );
-    PhotonJetTree->Branch( "vtxProbMVA"         , &phojInfo.vtxProbMVA      ,   "vtxProbMVA/F"          );
-    PhotonJetTree->Branch( "photonjet_Pt"       , &phojInfo.photonjet_Pt    ,   "photonjet_Pt/F"        );
-    PhotonJetTree->Branch( "photon_pt"          , &phojInfo.photon_pt       ,   "photon_pt/F"           );
-    PhotonJetTree->Branch( "photon_eta"         , &phojInfo.photon_eta      ,   "photon_eta/F"          );
-    PhotonJetTree->Branch( "jet_pt"             , &phojInfo.jet_pt          ,   "jet_pt/F"              );
-    PhotonJetTree->Branch( "jet_eta"            , &phojInfo.jet_eta         ,   "jet_eta/F"             );
-    PhotonJetTree->Branch( "photonjet_sumPt"    , &phojInfo.photonjet_sumPt ,   "photonjet_sumPt/F"     );
+    PhotonJetTree->Branch( "BSsigmaz"             , &phojInfo.BSsigmaz           ,   "BSsigmaz/F"            );
+    PhotonJetTree->Branch( "nvtx"                 , &phojInfo.nvtx               ,   "nvtx/I"                );
+    PhotonJetTree->Branch( "nPu"                  , &phojInfo.nPu                ,   "nPu/I"                 );
+    PhotonJetTree->Branch( "passTrigger"          , &phojInfo.passTrigger        ,   "passTrigger/I"         );
+    PhotonJetTree->Branch( "genweight"            , &phojInfo.genweight          ,   "genweight/F"           );
+    PhotonJetTree->Branch( "evWeight"             , &phojInfo.evWeight           ,   "evWeight/F"            );
+    PhotonJetTree->Branch( "JetTagVtxIndex"       , &phojInfo.JetTagVtxIndex     ,   "JetTagVtxIndex/I"      );
+    PhotonJetTree->Branch( "JetTagVtxIDMva"       , &phojInfo.JetTagVtxIDMva     ,   "JetTagVtxIDMva/F"      );
+    PhotonJetTree->Branch( "UnJetTagVtxIndex"     , &phojInfo.UnJetTagVtxIndex   ,   "UnJetTagVtxIndex/I"    );
+    PhotonJetTree->Branch( "UnJetTagVtxIDMva"     , &phojInfo.UnJetTagVtxIDMva   ,   "UnJetTagVtxIDMva/F"    );
+    PhotonJetTree->Branch( "SelectedvtxIndex"     , &phojInfo.SelectedvtxIndex   ,   "SelectedvtxIndex/I"    );
+    PhotonJetTree->Branch( "SelectedVtxIDMva"     , &phojInfo.SelectedVtxIDMva   ,   "SelectedVtxIDMva/F"    );
+    PhotonJetTree->Branch( "UnSelectedvtxIndex"   , &phojInfo.UnSelectedvtxIndex ,   "UnSelectedvtxIndex/I"  );
+    PhotonJetTree->Branch( "UnSelectedVtxIDMva"   , &phojInfo.UnSelectedVtxIDMva ,   "UnSelectedVtxIDMva/F"  );
+    PhotonJetTree->Branch( "dZfromRecoPV"         , &phojInfo.dZfromRecoPV       ,   "dZfromRecoPV/F"        );
+    PhotonJetTree->Branch( "nConv"                , &phojInfo.nConv              ,   "nConv/F"               );
+    PhotonJetTree->Branch( "vtxProbMVA"           , &phojInfo.vtxProbMVA         ,   "vtxProbMVA/F"          );
+    PhotonJetTree->Branch( "photonjet_Pt"         , &phojInfo.photonjet_Pt       ,   "photonjet_Pt/F"        );
+    PhotonJetTree->Branch( "photon_pt"            , &phojInfo.photon_pt          ,   "photon_pt/F"           );
+    PhotonJetTree->Branch( "photon_eta"           , &phojInfo.photon_eta         ,   "photon_eta/F"          );
+    PhotonJetTree->Branch( "jet_pt"               , &phojInfo.jet_pt             ,   "jet_pt/F"              );
+    PhotonJetTree->Branch( "jet_eta"              , &phojInfo.jet_eta            ,   "jet_eta/F"             );
+    PhotonJetTree->Branch( "photonjet_sumPt"      , &phojInfo.photonjet_sumPt    ,   "photonjet_sumPt/F"     );
 
     PhotonJetTree->Branch( "JetTagVtx_logSumPt2"    , &phojInfo.JetTagVtx_logSumPt2         ,   "JetTagVtx_logSumPt2/F"     );
     PhotonJetTree->Branch( "JetTagVtx_ptBal"        , &phojInfo.JetTagVtx_ptBal             ,   "JetTagVtx_ptBal/F"         );
@@ -344,36 +340,29 @@ PhotonJetValidationTreeMaker::endJob()
 void
 PhotonJetValidationTreeMaker::initEventStructure()
 {
-    globalInfo.BSsigmaz           = -999.; 
-    globalInfo.nvtx               = -999.; 
-    globalInfo.nPu                = -999.; 
-    globalInfo.nPuTrue            = -999.; 
-    globalInfo.nphoj              = -999.; 
-    globalInfo.evWeight           = 1.; 
-
-    phojInfo.BSsigmaz           = -999.; 
-    phojInfo.nvtx               = -999.; 
-    phojInfo.nPu                = -999.; 
-    phojInfo.nPuTrue            = -999.; 
-    phojInfo.genweight          = -999.; 
-    phojInfo.evWeight           = 1.; 
-    phojInfo.JetTagVtxIndex     = -999.; 
-    phojInfo.JetTagVtxIDMva     = -999.; 
-    phojInfo.UnJetTagVtxIndex   = -999.;
-    phojInfo.UnJetTagVtxIDMva   = -999.;
-    phojInfo.SelectedvtxIndex   = -999.;
-    phojInfo.SelectedVtxIDMva   = -999.;
+    phojInfo.BSsigmaz             = -999.; 
+    phojInfo.nvtx                 = -999.; 
+    phojInfo.nPu                  = -999.; 
+    phojInfo.passTrigger          = 0; 
+    phojInfo.genweight            = -999.; 
+    phojInfo.evWeight             = 1.; 
+    phojInfo.JetTagVtxIndex       = -999.; 
+    phojInfo.JetTagVtxIDMva       = -999.; 
+    phojInfo.UnJetTagVtxIndex     = -999.;
+    phojInfo.UnJetTagVtxIDMva     = -999.;
+    phojInfo.SelectedvtxIndex     = -999.;
+    phojInfo.SelectedVtxIDMva     = -999.;
     phojInfo.UnSelectedvtxIndex   = -999.;
     phojInfo.UnSelectedVtxIDMva   = -999.;
-    phojInfo.dZfromRecoPV       = -999.; 
-    phojInfo.nConv              = -999.; 
-    phojInfo.vtxProbMVA         = -999.; 
-    phojInfo.photonjet_Pt       = -999.; 
-    phojInfo.photon_pt          = -999.; 
-    phojInfo.photon_eta         = -999.; 
-    phojInfo.jet_pt             = -999.;
-    phojInfo.jet_eta            = -999.;
-    phojInfo.photonjet_sumPt    = -999.;
+    phojInfo.dZfromRecoPV         = -999.; 
+    phojInfo.nConv                = -999.; 
+    phojInfo.vtxProbMVA           = -999.; 
+    phojInfo.photonjet_Pt         = -999.; 
+    phojInfo.photon_pt            = -999.; 
+    phojInfo.photon_eta           = -999.; 
+    phojInfo.jet_pt               = -999.;
+    phojInfo.jet_eta              = -999.;
+    phojInfo.photonjet_sumPt      = -999.;
 
     phojInfo.JetTagVtx_logSumPt2         = -999.;   
     phojInfo.JetTagVtx_ptBal             = -999.;       
@@ -391,7 +380,6 @@ PhotonJetValidationTreeMaker::initEventStructure()
     phojInfo.UnSelectedvtx_ptBal           = -999.;     
     phojInfo.UnSelectedvtx_ptAsym          = -999.;    
     phojInfo.UnSelectedvtx_pullConv        = -999.;  
-
 }
 
 void

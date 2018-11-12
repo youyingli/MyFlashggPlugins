@@ -237,6 +237,7 @@ namespace flashgg {
             
         }// end loop over photons
         
+        std::sort( PhotonJetColl->begin(), PhotonJetColl->end(), greater<PhotonJetCandidate>() );
         evt.put( std::move(PhotonJetColl) );
         
     }

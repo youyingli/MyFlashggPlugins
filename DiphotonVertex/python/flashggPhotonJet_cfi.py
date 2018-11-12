@@ -69,20 +69,41 @@ flashggPhotonJet = cms.EDProducer('FlashggPhotonJetProducer',
                                   minJetPt = cms.double(30.),
                                   maxJetEta = cms.double(2.5),
                                   minPhotonPt = cms.double(55.),
+
+                                  #2017 tmp
                                   #Photon loose Id cut https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedPhotonIdentificationRun2#Working_points_for_92X_and_later
-                                  minPhotEBHoE = cms.double(0.105),
-                                  minPhotEEHoE = cms.double(0.029),
-                                  minPhotEBsietaieta = cms.double(0.0103),
-                                  minPhotEEsietaieta = cms.double(0.0276),
-                                  PhotEBChgIsoParams = cms.vdouble(2.839),
-                                  PhotEEChgIsoParams = cms.vdouble(2.150),
-                                  PhotEBNeuIsoParams = cms.vdouble(9.188, 0.0126, 0.000026),
-                                  PhotEENeuIsoParams = cms.vdouble(10.471, 0.0119, 0.000025),
-                                  PhotEBPhoIsoParams = cms.vdouble(2.956, 0.0035),
-                                  PhotEEPhoIsoParams = cms.vdouble(4.895, 0.0040),
+                                  #minPhotEBHoE = cms.double(0.105),
+                                  #minPhotEEHoE = cms.double(0.029),
+                                  #minPhotEBsietaieta = cms.double(0.0103),
+                                  #minPhotEEsietaieta = cms.double(0.0276),
+                                  #PhotEBChgIsoParams = cms.vdouble(2.839),
+                                  #PhotEEChgIsoParams = cms.vdouble(2.150),
+                                  #PhotEBNeuIsoParams = cms.vdouble(9.188, 0.0126, 0.000026),
+                                  #PhotEENeuIsoParams = cms.vdouble(10.471, 0.0119, 0.000025),
+                                  #PhotEBPhoIsoParams = cms.vdouble(2.956, 0.0035),
+                                  #PhotEEPhoIsoParams = cms.vdouble(4.895, 0.0040),
+                                  #iphotIsolnAreaValN = cms.int32(7),
+                                  #photIsolnEAreaVal = cms.vdouble(1.0, 1.479, 2.0, 2.2, 2.3, 2.4, 999999.0),
+                                  #photIsolnEAreaChgHad = cms.vdouble(0.0385, 0.0468, 0.0435, 0.0378, 0.0338, 0.0314, 0.0269),
+                                  #photIsolnEAreaNeuHad = cms.vdouble(0.0636, 0.1103, 0.0759, 0.0236, 0.0151, 0.00007, 0.0132),
+                                  #photIsolnEAreaPhot = cms.vdouble(0.1240, 0.1093, 0.0631, 0.0779, 0.0999, 0.1155, 0.1373)
+
+                                  #2016
+                                  #Photon loose Id cut https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedPhotonIdentificationRun2#Working_points_for_2016_data_for
+                                  minPhotEBHoE = cms.double(0.0597),
+                                  minPhotEEHoE = cms.double(0.0481),
+                                  minPhotEBsietaieta = cms.double(0.01031),
+                                  minPhotEEsietaieta = cms.double(0.03013),
+                                  PhotEBChgIsoParams = cms.vdouble(1.295),
+                                  PhotEEChgIsoParams = cms.vdouble(1.011),
+                                  PhotEBNeuIsoParams = cms.vdouble(10.910, 0.0148, 0.000017),
+                                  PhotEENeuIsoParams = cms.vdouble(5.931, 0.0163, 0.000014),
+                                  PhotEBPhoIsoParams = cms.vdouble(3.630, 0.0047),
+                                  PhotEEPhoIsoParams = cms.vdouble(6.641, 0.0034),
                                   iphotIsolnAreaValN = cms.int32(7),
                                   photIsolnEAreaVal = cms.vdouble(1.0, 1.479, 2.0, 2.2, 2.3, 2.4, 999999.0),
-                                  photIsolnEAreaChgHad = cms.vdouble(0.0385, 0.0468, 0.0435, 0.0378, 0.0338, 0.0314, 0.0269),
-                                  photIsolnEAreaNeuHad = cms.vdouble(0.0636, 0.1103, 0.0759, 0.0236, 0.0151, 0.00007, 0.0132),
-                                  photIsolnEAreaPhot = cms.vdouble(0.1240, 0.1093, 0.0631, 0.0779, 0.0999, 0.1155, 0.1373)
+                                  photIsolnEAreaChgHad = cms.vdouble(0.0360, 0.0377, 0.0306, 0.0283, 0.0254, 0.0217, 0.0167),
+                                  photIsolnEAreaNeuHad = cms.vdouble(0.0597, 0.0807, 0.0629, 0.0197, 0.0184, 0.0284, 0.0591),
+                                  photIsolnEAreaPhot = cms.vdouble(0.1210, 0.1107, 0.0699, 0.1056, 0.1457, 0.1719, 0.1998)
+
                                   )

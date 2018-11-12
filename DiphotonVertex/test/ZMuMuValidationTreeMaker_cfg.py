@@ -8,7 +8,8 @@ process.load("Configuration.StandardSequences.GeometryDB_cff")
 process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, '94X_dataRun2_v10')
+#process.GlobalTag = GlobalTag(process.GlobalTag, '94X_dataRun2_v10')
+process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mcRun2_asymptotic_v3')
 #process.GlobalTag = GlobalTag(process.GlobalTag, '94X_dataRun2_ReReco_EOY17_v2')
 #process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mc2017_realistic_v14')
 
@@ -21,7 +22,7 @@ process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 process.source = cms.Source ("PoolSource",
         fileNames = cms.untracked.vstring(
 #'root://cms-xrd-global.cern.ch//store/user/youying/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/ReMiniAOD_VTX_v1_DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIIFall17DRPremix-94X_mc2017_realistic_v10-v1/180116_143131/0000/miniAOD-prod_PAT_MC_1.root'
-'file:miniAOD-prod_PAT_1.root'
+'file:miniAOD-prod_PAT_296.root'
 #'/store/user/youying/DoubleMuon/ReMiniAOD_VTX_DoubleMuon_Run2017B-17Nov2017-v1/180112_155329/0000/miniAOD-prod_PAT_101.root'
         )
 )
@@ -116,10 +117,10 @@ process.commissioning = cms.EDAnalyzer('ZMuMuValidationTreeMaker',
                                        singlelegsigma2Tob      = cms.double(0.62143),
                                        singlelegsigma2PixFwd   = cms.double(0.577081),
                                        singlelegsigma2Tid      = cms.double(0.892751),
-                                       singlelegsigma2Tec      = cms.double(1.56638)      
+                                       singlelegsigma2Tec      = cms.double(1.56638) 
 )
 
 process.p = cms.Path(process.flashggZMuMuValidationSequence
-#                    *process.hltHighLevel
+                    *process.hltHighLevel
                     *process.commissioning
                     )
