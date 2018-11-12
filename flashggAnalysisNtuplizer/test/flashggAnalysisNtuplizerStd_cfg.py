@@ -53,7 +53,7 @@ if options.processType == 'data':
 else:
     process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mc2017_realistic_v14')
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(400) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32( 100 )

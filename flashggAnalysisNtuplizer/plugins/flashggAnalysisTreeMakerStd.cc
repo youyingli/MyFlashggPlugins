@@ -134,7 +134,8 @@ void
 flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup )
 {
 
-    // access edm objects
+    // Access edm objects
+    // ---------------------------------------------------------------------------------------------------------
     Handle< View<flashgg::DiPhotonCandidate> >   diphotons;
     JetCollectionVector Jets( inputTagJets_.size() );
     Handle< View<flashgg::Electron> >            electrons;
@@ -174,10 +175,12 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
     Handle<HTXS::HiggsClassification> htxsClassification;
     iEvent.getByToken(newHTXSToken_, htxsClassification);
 
-    // ********************************************************************************
-
+    // dataformat Initialzation
+    // ---------------------------------------------------------------------------------------------------------
     dataformat.Initialzation();
 
+    // Global information
+    // ---------------------------------------------------------------------------------------------------------
     dataformat.Rho     = *rho;
     dataformat.PVz     = primaryVertices->ptrAt(0)->z();
     dataformat.NVtx    = primaryVertices->size();
@@ -219,9 +222,12 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
     dataformat.Flag_ecalBadCalibFilter                 = passMETFilter("Flag_ecalBadCalibFilter");
     dataformat.Flag_eeBadScFilter                      = iEvent.isRealData() ? passMETFilter("Flag_eeBadScFilter") : true;
 
+    // Choose leading diphoton information and store them and associated ones
     const std::vector<edm::Ptr<flashgg::DiPhotonCandidate> > diphotonPtrs = diphotons->ptrs();
     if (diphotonPtrs.size() > 0) {
 
+        // DiPhoton information 
+        // ---------------------------------------------------------------------------------------------------------
         const Ptr<flashgg::DiPhotonCandidate> diphoPtr = diphotonPtrs[0];
         dataformat.dipho_mass                 = diphoPtr->mass();
         dataformat.dipho_pt                   = diphoPtr->pt();
@@ -252,6 +258,8 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
         dataformat.dipho_SelectedVz           = diphoPtr->vtx()->position().z();
         dataformat.dipho_GenVz                = diphoPtr->genPV().z();
 
+        // Electron information
+        // ---------------------------------------------------------------------------------------------------------
         int Nelecs = 0;
         for ( const auto& it_elec : electrons->ptrs() ) {
 
@@ -297,7 +305,8 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
         }
         dataformat.elecs_size = Nelecs;
 
-
+        // Muon information
+        // ---------------------------------------------------------------------------------------------------------
         double Nmuons = 0;
         for ( const auto& it_muon : muons->ptrs() ) {
             if ( !it_muon->passed(reco::Muon::CutBasedIdLoose) ) continue;
@@ -343,6 +352,8 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
         }
         dataformat.muons_size = Nmuons;
 
+        // Jet information
+        // ---------------------------------------------------------------------------------------------------------
         int Njets = 0;
         unsigned int jetCollectionIndex = diphoPtr->jetCollectionIndex();
         for ( const auto& it_jet : Jets[jetCollectionIndex]->ptrs() ) {
@@ -393,9 +404,11 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
             }
 
             Njets++;
-        }//jet loop
+        } //jet loop
         dataformat.jets_size = Njets;
 
+        // Met information
+        // ---------------------------------------------------------------------------------------------------------
         edm::Ptr<flashgg::Met> theMet = met->ptrAt( 0 );
         dataformat.met_Pt     = theMet->pt();
         dataformat.met_Phi    = theMet->phi();
@@ -405,6 +418,8 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
 
     }
 
+    // Gen information
+    // ---------------------------------------------------------------------------------------------------------
     if (!iEvent.isRealData()) {
         for( unsigned int PVI = 0; PVI < pileupInfo->size(); ++PVI ) {
             Int_t pu_bunchcrossing = pileupInfo->ptrAt( PVI )->getBunchCrossing();
@@ -445,6 +460,8 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
 
     }
 
+    //Athough choosing leading diphoton information and storing them and associated ones, 
+    //but still keep global information and gen information for completeness.
     dataformat.InfoFill();
 
 }

@@ -132,19 +132,9 @@ def includeHTXS(process):
                                          signalParticlePdgIds = cms.vint32(25), ## for the Higgs analysis
                                          )
 
-    #def customizeDec2016Regression(self,process):
-    #    if not (process.GlobalTag.globaltag == "80X_mcRun2_asymptotic_2016_TrancheIV_v7" or process.GlobalTag.globaltag == "80X_dataRun2_2016SeptRepro_v6"):
-    #        raise Exception,"Regression application turned on but globalTag has unexpected value %s - see MicroAODCustomize.py" % process.GlobalTag.globaltag
-
-    #    from EgammaAnalysis.ElectronTools.regressionWeights_cfi import regressionWeights
-    #    process = regressionWeights(process)
-    #    process.load('EgammaAnalysis.ElectronTools.regressionApplication_cff')
-    #    process.p.insert(0,process.regressionApplication)
-    #    process.electronMVAValueMapProducer.srcMiniAOD = cms.InputTag("slimmedElectrons")
-    #    process.photonMVAValueMapProducer.srcMiniAOD = cms.InputTag("slimmedPhotons")
-    #    process.photonIDValueMapProducer.srcMiniAOD = cms.InputTag("slimmedPhotons")
-
+# signal specific setting
 def prepareSignal(process, filename):
+
     includeflashggDiphoton(process)
     includeflashggLepton(process)
     includeflashggJet(process, isMC = True)
@@ -163,8 +153,9 @@ def prepareSignal(process, filename):
 
     process.flashggGenPhotonsExtra.defaultType = 1
 
-# background specific customization
+# background specific setting
 def prepareBackground(process, filename):
+
     includeflashggDiphoton(process)
     includeflashggLepton(process)
     includeflashggJet(process, isMC = True)
@@ -175,8 +166,10 @@ def prepareBackground(process, filename):
 
     if filename.find("Sherpa") != -1:
         process.flashggGenPhotonsExtra.defaultType = 1
-# data specific customization
+
+# data specific setting
 def prepareData(process):
+
     includeflashggDiphoton(process)
     includeflashggLepton(process)
     includeflashggJet(process, isMC = False)
@@ -185,11 +178,11 @@ def prepareData(process):
     includeFall17EGMPhoID(process)
 
     from MyFlashggPlugins.flashggAnalysisNtuplizer.flashggJets2_cfi import maxJetCollections
-    for vtx in range(0,maxJetCollections):
-        delattr(process,"patJetGenJetMatchAK4PFCHSLeg%i"%vtx)
-        delattr(process,"patJetFlavourAssociationAK4PFCHSLeg%i"%vtx)
-        delattr(process,"patJetPartons%i"%vtx)
-        delattr(process,"patJetPartonMatchAK4PFCHSLeg%i"%vtx)
+    for vtx in range(0, maxJetCollections):
+        delattr(process, "patJetGenJetMatchAK4PFCHSLeg%i"%vtx)
+        delattr(process, "patJetFlavourAssociationAK4PFCHSLeg%i"%vtx)
+        delattr(process, "patJetPartons%i"%vtx)
+        delattr(process, "patJetPartonMatchAK4PFCHSLeg%i"%vtx)
 
 def prepareflashggMicroAODTask(process, processType, filename):
 
@@ -206,5 +199,6 @@ def prepareflashggMicroAODTask(process, processType, filename):
     getattr( process, 'MicroAODTask', cms.Task() ).add(*[getattr(process,prod) for prod in process.producers_()])
     getattr( process, 'MicroAODTask', cms.Task() ).add(*[getattr(process,filt) for filt in process.filters_()])
     return process.MicroAODTask
-##########################################
+
+#################  H T X S  #########################
 #process.rivetProducerHTXS.ProductionMode = "GGF", "VBF", "VH", "TTH", "TH"
