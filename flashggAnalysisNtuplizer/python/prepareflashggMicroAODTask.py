@@ -43,7 +43,7 @@ def includePFMET(process, isMC):
                          # will produce new MET collection: slimmedMETsModifiedMET
                          postfix = "ModifiedMET",
                          )
-    process.flashggMets = cms.EDProducer('FlashggMetProducer',
+    process.flashggMetsCorr = cms.EDProducer('FlashggMetProducer',
                                           verbose = cms.untracked.bool(False),
                                           metTag = cms.InputTag('slimmedMETsModifiedMET'),
                                           )

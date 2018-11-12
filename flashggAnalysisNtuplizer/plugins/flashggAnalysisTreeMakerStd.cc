@@ -75,8 +75,8 @@ private:
     edm::EDGetTokenT<edm::TriggerResults>                   triggerToken_;
     edm::EDGetTokenT<edm::TriggerResults>                   mettriggerToken_;
     std::string pathName_;
+    bool isMiniAOD_;
     bool doHTXS_;
-
 
     edm::EDGetTokenT<int> stage0catToken_, stage1catToken_, njetsToken_;
     edm::EDGetTokenT<HTXS::HiggsClassification> newHTXSToken_;
@@ -107,8 +107,9 @@ flashggAnalysisTreeMakerStd::flashggAnalysisTreeMakerStd( const edm::ParameterSe
     triggerToken_         ( consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "TriggerTag"     ) ) ),
     mettriggerToken_      ( consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "MetTriggerTag"  ) ) )
 {
-    pathName_ = iConfig.getParameter<std::string>( "pathName" ) ;
-    doHTXS_   = iConfig.getParameter<bool>( "doHTXS" ) ;
+    pathName_   = iConfig.getParameter<std::string>( "pathName" ) ;
+    isMiniAOD_  = iConfig.getParameter<bool>( "isMiniAOD" ) ;
+    doHTXS_     = iConfig.getParameter<bool>( "doHTXS" ) ;
 
     for (unsigned i = 0 ; i < inputTagJets_.size() ; i++) {
         auto token = consumes<View<flashgg::Jet> >(inputTagJets_[i]);
@@ -264,8 +265,6 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
             dataformat.elecs_Energy              .emplace_back( it_elec->energy() );
             dataformat.elecs_EtaSC               .emplace_back( it_elec->superCluster()->eta() );
             dataformat.elecs_PhiSC               .emplace_back( it_elec->superCluster()->phi() );
-            //dataformat.elecs_GsfTrackDz          .emplace_back( it_elec->gsfTrack().isNonnull() ? it_elec->gsfTrack()->dz( diphoPtr->vtx()->position() ) : -999. );
-            //dataformat.elecs_GsfTrackDxy         .emplace_back( it_elec->gsfTrack().isNonnull() ? it_elec->gsfTrack()->dxy( diphoPtr->vtx()->position() ): -999. );
             dataformat.elecs_EGMCutBasedIDVeto   .emplace_back( it_elec->passVetoId() );
             dataformat.elecs_EGMCutBasedIDLoose  .emplace_back( it_elec->passLooseId() );
             dataformat.elecs_EGMCutBasedIDMedium .emplace_back( it_elec->passMediumId() );
@@ -273,22 +272,26 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
             dataformat.elecs_fggPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.2, 0.35, 5.0 ) );
             dataformat.elecs_tmpPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.4, 0.4, 5.0 ) );
 
-            //if ( !iEvent.isRealData() ) {
-            //    const reco::GenParticle* gen = it_elec->genLepton();
-            //    if ( gen != nullptr ) {
-            //        dataformat.elecs_GenMatch .emplace_back( true );
-            //        dataformat.elecs_GenPdgID .emplace_back( gen->pdgId() );
-            //        dataformat.elecs_GenPt    .emplace_back( gen->pt() );
-            //        dataformat.elecs_GenEta   .emplace_back( gen->eta() );
-            //        dataformat.elecs_GenPhi   .emplace_back( gen->phi() );
-            //    } else {
-            //        dataformat.elecs_GenMatch .emplace_back( false );
-            //        dataformat.elecs_GenPdgID .emplace_back( 0 );
-            //        dataformat.elecs_GenPt    .emplace_back( -999. );
-            //        dataformat.elecs_GenEta   .emplace_back( -999. );
-            //        dataformat.elecs_GenPhi   .emplace_back( -999. );
-            //    }
-            //}
+            if ( isMiniAOD_ ) {
+                dataformat.elecs_GsfTrackDz     .emplace_back( it_elec->gsfTrack()->dz( diphoPtr->vtx()->position() ) );
+                dataformat.elecs_GsfTrackDxy    .emplace_back( it_elec->gsfTrack()->dxy( diphoPtr->vtx()->position() ) );
+                if ( !iEvent.isRealData() ) {
+                    const reco::GenParticle* gen = it_elec->genLepton();
+                    if ( gen != nullptr ) {
+                        dataformat.elecs_GenMatch .emplace_back( true );
+                        dataformat.elecs_GenPdgID .emplace_back( gen->pdgId() );
+                        dataformat.elecs_GenPt    .emplace_back( gen->pt() );
+                        dataformat.elecs_GenEta   .emplace_back( gen->eta() );
+                        dataformat.elecs_GenPhi   .emplace_back( gen->phi() );
+                    } else {
+                        dataformat.elecs_GenMatch .emplace_back( false );
+                        dataformat.elecs_GenPdgID .emplace_back( 0 );
+                        dataformat.elecs_GenPt    .emplace_back( -999. );
+                        dataformat.elecs_GenEta   .emplace_back( -999. );
+                        dataformat.elecs_GenPhi   .emplace_back( -999. );
+                    }
+                }
+            }
 
             Nelecs++;
         }
@@ -317,22 +320,24 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
             dataformat.muons_PFIsoDeltaBetaCorrR04   .emplace_back( it_muon->fggPFIsoSumRelR04() );
             dataformat.muons_TrackerBasedIsoR03      .emplace_back( it_muon->fggTrkIsoSumRelR03() );
 
-            //if ( !iEvent.isRealData() ) {
-            //    const reco::GenParticle* gen = it_muon->genLepton();
-            //    if ( gen != nullptr ) {
-            //        dataformat.muons_GenMatch .emplace_back( true );
-            //        dataformat.muons_GenPdgID .emplace_back( gen->pdgId() );
-            //        dataformat.muons_GenPt    .emplace_back( gen->pt() );
-            //        dataformat.muons_GenEta   .emplace_back( gen->eta() );
-            //        dataformat.muons_GenPhi   .emplace_back( gen->phi() );
-            //    } else {
-            //        dataformat.muons_GenMatch .emplace_back( false );
-            //        dataformat.muons_GenPdgID .emplace_back( 0 );
-            //        dataformat.muons_GenPt    .emplace_back( -999. );
-            //        dataformat.muons_GenEta   .emplace_back( -999. );
-            //        dataformat.muons_GenPhi   .emplace_back( -999. );
-            //    }
-            //}
+            if ( isMiniAOD_ ) {
+                if ( !iEvent.isRealData() ) {
+                    const reco::GenParticle* gen = it_muon->genLepton();
+                    if ( gen != nullptr ) {
+                        dataformat.muons_GenMatch .emplace_back( true );
+                        dataformat.muons_GenPdgID .emplace_back( gen->pdgId() );
+                        dataformat.muons_GenPt    .emplace_back( gen->pt() );
+                        dataformat.muons_GenEta   .emplace_back( gen->eta() );
+                        dataformat.muons_GenPhi   .emplace_back( gen->phi() );
+                    } else {
+                        dataformat.muons_GenMatch .emplace_back( false );
+                        dataformat.muons_GenPdgID .emplace_back( 0 );
+                        dataformat.muons_GenPt    .emplace_back( -999. );
+                        dataformat.muons_GenEta   .emplace_back( -999. );
+                        dataformat.muons_GenPhi   .emplace_back( -999. );
+                    }
+                }
+            }
 
             Nmuons++;
         }
@@ -365,6 +370,27 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
             dataformat.jets_pfDeepCSVJetTags_probbb       .emplace_back( it_jet->bDiscriminator( "pfDeepCSVJetTags:probbb" ) );
             dataformat.jets_pfDeepCSVJetTags_probc        .emplace_back( it_jet->bDiscriminator( "pfDeepCSVJetTags:probc" ) );
             dataformat.jets_pfDeepCSVJetTags_probudsg     .emplace_back( it_jet->bDiscriminator( "pfDeepCSVJetTags:probudsg" ) );
+
+            if ( isMiniAOD_ && !iEvent.isRealData() ) {
+                const reco::GenParticle* parton = it_jet->genParton();
+                if ( parton != nullptr ) {
+                    dataformat.jets_GenPartonMatch    .emplace_back( true );
+                    dataformat.jets_GenPt             .emplace_back( parton->pt() );
+                    dataformat.jets_GenEta            .emplace_back( parton->eta() );
+                    dataformat.jets_GenPhi            .emplace_back( parton->phi() );
+                    dataformat.jets_GenPdgID          .emplace_back( parton->pdgId() );
+                    dataformat.jets_GenFlavor         .emplace_back( it_jet->partonFlavour() );
+                    dataformat.jets_GenHadronFlavor   .emplace_back( it_jet->hadronFlavour() );
+                } else {
+                    dataformat.jets_GenPartonMatch    .emplace_back( false );
+                    dataformat.jets_GenPt             .emplace_back( -999. );
+                    dataformat.jets_GenEta            .emplace_back( -999. );
+                    dataformat.jets_GenPhi            .emplace_back( -999. );
+                    dataformat.jets_GenPdgID          .emplace_back( 0 );
+                    dataformat.jets_GenFlavor         .emplace_back( 0 );
+                    dataformat.jets_GenHadronFlavor   .emplace_back( 0 );
+                }
+            }
 
             Njets++;
         }//jet loop

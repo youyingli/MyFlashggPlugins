@@ -3,6 +3,14 @@ import FWCore.Utilities.FileUtils as FileUtils
 import FWCore.ParameterSet.VarParsing as opts
 
 options = opts.VarParsing ('analysis')
+
+options.register('Era',
+                 "2017",
+                 opts.VarParsing.multiplicity.singleton,
+                 opts.VarParsing.varType.string,
+                 'Era'
+                 )
+
 options.register('runMiniAOD',
                  False,
                  opts.VarParsing.multiplicity.singleton,
@@ -10,11 +18,18 @@ options.register('runMiniAOD',
                  'runMiniAOD'
                  )
 
-options.register('isData',
-                 False,
+options.register('processType',
+                 "sig",
                  opts.VarParsing.multiplicity.singleton,
-                 opts.VarParsing.varType.bool,
-                 'isData'
+                 opts.VarParsing.varType.string,
+                 'processType'
+                 )
+
+options.register('filename',
+                 "ttHJetToGG_M125_13TeV_amcatnloFXFX_madspin_pythia8",
+                 opts.VarParsing.multiplicity.singleton,
+                 opts.VarParsing.varType.string,
+                 'filename'
                  )
 
 options.register('doHTXS',
@@ -33,7 +48,7 @@ process.load("Configuration.StandardSequences.GeometryDB_cff")
 process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 from Configuration.AlCa.GlobalTag import GlobalTag
-if options.isData:
+if options.processType == 'data':
     process.GlobalTag = GlobalTag(process.GlobalTag, '94X_dataRun2_ReReco_EOY17_v6')
 else:
     process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mc2017_realistic_v14')
@@ -42,7 +57,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(400) )
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32( 100 )
-#process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
+process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
 process.source = cms.Source ("PoolSource",
         fileNames = cms.untracked.vstring(
@@ -74,7 +89,7 @@ process.stdDiPhotonJetsSeq = cms.Sequence()
 #---------------------------------------------------------------------------------------------
 from HLTrigger.HLTfilters.hltHighLevel_cfi import hltHighLevel
 process.hltHighLevel= hltHighLevel.clone(HLTPaths = cms.vstring("HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90_v*",))
-if options.isData:
+if options.processType == 'data':
     process.stdDiPhotonJetsSeq += process.hltHighLevel
 
 #---------------------------------------------------------------------------------------------
@@ -87,8 +102,7 @@ if options.runMiniAOD:
             )
 
     from MyFlashggPlugins.flashggAnalysisNtuplizer.prepareflashggMicroAODTask import prepareflashggMicroAODTask
-    #prepareflashggMicroAODTask(process, processType, filename)
-    MicroAODTask = prepareflashggMicroAODTask(process, 'sig', 'GluGluHToGG_M125_13TeV')
+    MicroAODTask = prepareflashggMicroAODTask(process, options.processType, options.filename)
     process.stdDiPhotonJetsSeq.associate( MicroAODTask )
 
 #---------------------------------------------------------------------------------------------
@@ -112,7 +126,6 @@ UnpackedJetCollectionVInputTag = cms.VInputTag()
 for i in range(0,maxJetCollections):
     UnpackedJetCollectionVInputTag.append(cms.InputTag('flashggUnpackedJets',str(i)))
 
-
 #---------------------------------------------------------------------------------------------
 # Merge DiPhoton and Jets modules
 #---------------------------------------------------------------------------------------------
@@ -123,19 +136,17 @@ process.basicSeq = cms.Sequence(process.flashggUpdatedIdMVADiPhotons
 
 process.stdDiPhotonJetsSeq += process.basicSeq
 
-
 #---------------------------------------------------------------------------------------------
 # Systematics setting (To Do)
 #---------------------------------------------------------------------------------------------
 #process.load("flashgg.Systematics.flashggDiPhotonSystematics_cfi")
 #process.flashggPreselectedDiPhotons.src = cms.InputTag('flashggDiPhotonSystematics')
 
-
 #---------------------------------------------------------------------------------------------
 # Customize your own settings based on exist modules
 #---------------------------------------------------------------------------------------------
 from MyFlashggPlugins.flashggAnalysisNtuplizer.myflashggCustomize import myflashggCustomize
-myflashggCustomize(process)
+myflashggCustomize(process, options.runMiniAOD)
 
 #---------------------------------------------------------------------------------------------
 # Main Ntuplizer
@@ -146,18 +157,17 @@ process.flashggNtuple = cms.EDAnalyzer('flashggAnalysisTreeMakerStd',
                                        inputTagJets            = UnpackedJetCollectionVInputTag,
                                        ElectronTag             = cms.InputTag('flashggSelectedElectrons'),
                                        MuonTag                 = cms.InputTag('flashggSelectedMuons'),
-                                       #MetTag                  = cms.InputTag('flashggMets'),
                                        MetTag                  = cms.InputTag('flashggMetsCorr'),
                                        VertexTag               = cms.InputTag('offlineSlimmedPrimaryVertices'),
                                        BeamSpotTag             = cms.InputTag('offlineBeamSpot'),
                                        RhoTag                  = cms.InputTag('fixedGridRhoFastjetAll'),
                                        GenParticleTag          = cms.InputTag('flashggPrunedGenParticles'),
-                                       #GenParticleTag          = cms.InputTag('prunedGenParticles'),
                                        GenEventInfo            = cms.InputTag('generator'),
                                        PileUpTag               = cms.InputTag('slimmedAddPileupInfo'),
                                        TriggerTag              = cms.InputTag('TriggerResults::HLT'),
                                        MetTriggerTag           = cms.InputTag('TriggerResults::PAT'),
                                        pathName                = cms.string("HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90"),
+                                       isMiniAOD               = cms.bool(options.runMiniAOD),
                                        doHTXS                  = cms.bool(options.doHTXS),
                                        HTXSTags                = HTXSInputTags
 )
