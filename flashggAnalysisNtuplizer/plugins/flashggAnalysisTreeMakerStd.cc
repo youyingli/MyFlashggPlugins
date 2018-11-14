@@ -277,8 +277,8 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
             dataformat.elecs_EGMCutBasedIDLoose  .emplace_back( it_elec->passLooseId() );
             dataformat.elecs_EGMCutBasedIDMedium .emplace_back( it_elec->passMediumId() );
             dataformat.elecs_EGMCutBasedIDTight  .emplace_back( it_elec->passTightId() );
-            dataformat.elecs_fggPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.2, 0.35, 5.0 ) );
-            dataformat.elecs_tmpPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.4, 0.4, 5.0 ) );
+            dataformat.elecs_fggPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.2, 0.35, 0.0 ) );
+            dataformat.elecs_tmpPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.4, 0.4, 0.0 ) );
 
             if ( isMiniAOD_ ) {
                 dataformat.elecs_GsfTrackDz     .emplace_back( it_elec->gsfTrack()->dz( diphoPtr->vtx()->position() ) );
