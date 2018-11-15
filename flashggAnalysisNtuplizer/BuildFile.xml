@@ -12,5 +12,6 @@
 <use name="flashgg/MicroAOD"/>
 <use name="flashgg/Taggers"/>
 <use name="HLTrigger/HLTcore"/>
-<use name="MyFlashggPlugins/flashggAnalysisNtuplizer"/>
-<flags EDM_PLUGIN="1"/>
+<export>
+  <lib name="1"/>
+</export>

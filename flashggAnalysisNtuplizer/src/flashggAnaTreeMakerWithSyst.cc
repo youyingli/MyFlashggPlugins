@@ -1,159 +1,66 @@
-
-#include <memory>
-
-#include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/EDAnalyzer.h"
-
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/Utilities/interface/InputTag.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "CommonTools/UtilAlgos/interface/TFileService.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/Common/interface/Ptr.h"
 
-#include "flashgg/DataFormats/interface/DiPhotonCandidate.h"
-#include "flashgg/DataFormats/interface/Jet.h"
-#include "flashgg/DataFormats/interface/Electron.h"
-#include "flashgg/DataFormats/interface/Muon.h"
-#include "flashgg/DataFormats/interface/Met.h"
-#include "SimDataFormats/HTXS/interface/HiggsTemplateCrossSections.h"
-#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
-#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
-#include "FWCore/Common/interface/TriggerNames.h"
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
-
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/MuonReco/interface/MuonSelectors.h"
 #include "flashgg/Taggers/interface/LeptonSelection.h"
 
-#include "MyFlashggPlugins/flashggAnalysisNtuplizer/interface/DataFormats.h"
-#include "TLorentzVector.h"
-#include "TTree.h"
-
-// **********************************************************************
+#include "MyFlashggPlugins/flashggAnalysisNtuplizer/interface/flashggAnaTreeMakerWithSyst.h"
 
 using namespace std;
 using namespace edm;
 using namespace flashgg;
 
-
-// **********************************************************************
-
-class flashggAnalysisTreeMakerStd : public edm::EDAnalyzer
-{
-
-    public:
-        explicit flashggAnalysisTreeMakerStd( const edm::ParameterSet & );
-        ~flashggAnalysisTreeMakerStd();
-    
-        static void fillDescriptions( edm::ConfigurationDescriptions &descriptions );
-    
-    
-    private:
-    
-        typedef std::vector<edm::Handle<edm::View<flashgg::Jet> > > JetCollectionVector;
-        edm::Service<TFileService> fs_;
-        TTree* tree;
-    
-        virtual void beginJob() override;
-        virtual void analyze( const edm::Event &, const edm::EventSetup & ) override;
-        virtual void endJob() override;
-    
-        edm::EDGetTokenT<edm::View<flashgg::DiPhotonCandidate>> diphotonToken_;
-        std::vector<edm::InputTag> inputTagJets_;
-        std::vector<edm::EDGetTokenT<View<flashgg::Jet>>>       tokenJets_;
-        edm::EDGetTokenT<edm::View<flashgg::Electron>>          electronToken_;
-        edm::EDGetTokenT<edm::View<flashgg::Muon>>              muonToken_;
-        edm::EDGetTokenT<edm::View<flashgg::Met>>               metToken_;
-    
-        edm::EDGetTokenT<edm::View<reco::Vertex>>               vertexToken_;
-        edm::EDGetTokenT<reco::BeamSpot>                        beamSpotToken_;
-        edm::EDGetTokenT<double>                                rhoTaken_;
-        edm::EDGetTokenT<View<reco::GenParticle>>               genParticleToken_;
-        edm::EDGetTokenT<GenEventInfoProduct>                   genEventInfoToken_;
-        edm::EDGetTokenT<View<PileupSummaryInfo>>               pileUpToken_;
-        edm::EDGetTokenT<edm::TriggerResults>                   triggerToken_;
-        edm::EDGetTokenT<edm::TriggerResults>                   mettriggerToken_;
-        std::string pathName_;
-        bool isMiniAOD_;
-        bool doHTXS_;
-    
-        edm::EDGetTokenT<int> stage0catToken_, stage1catToken_, njetsToken_;
-        edm::EDGetTokenT<HTXS::HiggsClassification> newHTXSToken_;
-        edm::EDGetTokenT<float> pTHToken_,pTVToken_;
-    
-        flashggAnalysisTreeFormatStd dataformat;
-
-};
-
-// ******************************************************************************************
-
-
-//
-// constructors and destructor
-//
-flashggAnalysisTreeMakerStd::flashggAnalysisTreeMakerStd( const edm::ParameterSet &iConfig ):
-    diphotonToken_        ( consumes< View<flashgg::DiPhotonCandidate> >     ( iConfig.getParameter<InputTag> ( "DiPhotonTag"    ) ) ),
-    inputTagJets_         ( iConfig.getParameter<std::vector<edm::InputTag> >( "inputTagJets" )                                      ),
-    electronToken_        ( consumes< View<flashgg::Electron> >              ( iConfig.getParameter<InputTag> ( "ElectronTag"    ) ) ),
-    muonToken_            ( consumes< View<flashgg::Muon> >                  ( iConfig.getParameter<InputTag> ( "MuonTag"        ) ) ),
-    metToken_             ( consumes< View<flashgg::Met> >                   ( iConfig.getParameter<InputTag> ( "MetTag"         ) ) ),
-    vertexToken_          ( consumes< View<reco::Vertex> >                   ( iConfig.getParameter<InputTag> ( "VertexTag"      ) ) ),
-    beamSpotToken_        ( consumes< reco::BeamSpot >                       ( iConfig.getParameter<InputTag> ( "BeamSpotTag"    ) ) ),
-    rhoTaken_             ( consumes< double >                               ( iConfig.getParameter<InputTag> ( "RhoTag"         ) ) ),
-    genParticleToken_     ( consumes< View<reco::GenParticle> >              ( iConfig.getParameter<InputTag> ( "GenParticleTag" ) ) ),
-    genEventInfoToken_    ( consumes< GenEventInfoProduct >                  ( iConfig.getParameter<InputTag> ( "GenEventInfo"   ) ) ),
-    pileUpToken_          ( consumes< View<PileupSummaryInfo > >             ( iConfig.getParameter<InputTag> ( "PileUpTag"      ) ) ),
-    triggerToken_         ( consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "TriggerTag"     ) ) ),
-    mettriggerToken_      ( consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "MetTriggerTag"  ) ) )
+flashggAnaTreeMakerWithSyst::flashggAnaTreeMakerWithSyst( const edm::InputTag &diphoton, const edm::ParameterSet &iConfig, edm::ConsumesCollector&& iC):
+    diphotonToken_        ( iC.consumes< View<flashgg::DiPhotonCandidate> >     ( diphoton                                            ) ),
+    inputTagJets_         ( iConfig.getParameter<vector<edm::InputTag> >( "inputTagJets" )                                              ),
+    electronToken_        ( iC.consumes< View<flashgg::Electron> >              ( iConfig.getParameter<InputTag> ( "ElectronTag"    ) ) ),
+    muonToken_            ( iC.consumes< View<flashgg::Muon> >                  ( iConfig.getParameter<InputTag> ( "MuonTag"        ) ) ),
+    metToken_             ( iC.consumes< View<flashgg::Met> >                   ( iConfig.getParameter<InputTag> ( "MetTag"         ) ) ),
+    vertexToken_          ( iC.consumes< View<reco::Vertex> >                   ( iConfig.getParameter<InputTag> ( "VertexTag"      ) ) ),
+    beamSpotToken_        ( iC.consumes< reco::BeamSpot >                       ( iConfig.getParameter<InputTag> ( "BeamSpotTag"    ) ) ),
+    rhoTaken_             ( iC.consumes< double >                               ( iConfig.getParameter<InputTag> ( "RhoTag"         ) ) ),
+    genParticleToken_     ( iC.consumes< View<reco::GenParticle> >              ( iConfig.getParameter<InputTag> ( "GenParticleTag" ) ) ),
+    genEventInfoToken_    ( iC.consumes< GenEventInfoProduct >                  ( iConfig.getParameter<InputTag> ( "GenEventInfo"   ) ) ),
+    pileUpToken_          ( iC.consumes< View<PileupSummaryInfo > >             ( iConfig.getParameter<InputTag> ( "PileUpTag"      ) ) ),
+    triggerToken_         ( iC.consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "TriggerTag"     ) ) ),
+    mettriggerToken_      ( iC.consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "MetTriggerTag"  ) ) )
 {
     pathName_   = iConfig.getParameter<std::string>( "pathName" ) ;
     isMiniAOD_  = iConfig.getParameter<bool>( "isMiniAOD" ) ;
     doHTXS_     = iConfig.getParameter<bool>( "doHTXS" ) ;
 
     for (unsigned i = 0 ; i < inputTagJets_.size() ; i++) {
-        auto token = consumes<View<flashgg::Jet> >(inputTagJets_[i]);
+        auto token = iC.consumes<View<flashgg::Jet> >(inputTagJets_[i]);
         tokenJets_.push_back(token);
     }
 
     ParameterSet HTXSps = iConfig.getParameterSet( "HTXSTags" );
-    stage0catToken_ = consumes<int>( HTXSps.getParameter<InputTag>("stage0cat") );
-    stage1catToken_ = consumes<int>( HTXSps.getParameter<InputTag>("stage1cat") );
-    njetsToken_     = consumes<int>( HTXSps.getParameter<InputTag>("njets") );
-    pTHToken_       = consumes<float>( HTXSps.getParameter<InputTag>("pTH") );
-    pTVToken_       = consumes<float>( HTXSps.getParameter<InputTag>("pTV") );
-    newHTXSToken_   = consumes<HTXS::HiggsClassification>( HTXSps.getParameter<InputTag>("ClassificationObj") );
+    newHTXSToken_ = iC.consumes<HTXS::HiggsClassification>( HTXSps.getParameter<InputTag>("ClassificationObj") );
 
 }
 
-flashggAnalysisTreeMakerStd::~flashggAnalysisTreeMakerStd()
+flashggAnaTreeMakerWithSyst::~flashggAnaTreeMakerWithSyst()
 {
 }
 
 void
-flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup )
+flashggAnaTreeMakerWithSyst::RegisterTree( TTree* tree )
+{
+    dataformat.RegisterTree( tree );
+}
+
+void
+flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup )
 {
 
     // Access edm objects
     // ---------------------------------------------------------------------------------------------------------
-    Handle< View<flashgg::DiPhotonCandidate> >   diphotons;
     JetCollectionVector Jets( inputTagJets_.size() );
-    Handle< View<flashgg::Electron> >            electrons;
-    Handle< View<flashgg::Muon> >                muons;
-    Handle< View<flashgg::Met> >                 met;
-    Handle< View<reco::Vertex> >                 primaryVertices;
-    Handle< reco::BeamSpot >                     recoBeamSpotHandle;
-    Handle< double >                             rho;
-    Handle< View<reco::GenParticle> >            genParticles;
-    Handle< GenEventInfoProduct >                genEventInfo;
-    Handle< View< PileupSummaryInfo> >           pileupInfo;
-    Handle< edm::TriggerResults >                triggerHandle;
-    Handle< edm::TriggerResults >                mettriggerHandle;
 
     iEvent.getByToken( diphotonToken_     ,     diphotons           );
-    for( size_t j = 0; j < inputTagJets_.size(); ++j ) iEvent.getByToken( tokenJets_[j], Jets[j] );
+    for( size_t j = 0; j < inputTagJets_.size(); ++j ) 
+        iEvent.getByToken( tokenJets_[j], Jets[j] );
     iEvent.getByToken( electronToken_     ,     electrons           );
     iEvent.getByToken( muonToken_         ,     muons               );
     iEvent.getByToken( metToken_          ,     met                 );
@@ -165,17 +72,7 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
     iEvent.getByToken( pileUpToken_       ,     pileupInfo          );
     iEvent.getByToken( triggerToken_      ,     triggerHandle       );
     iEvent.getByToken( mettriggerToken_   ,     mettriggerHandle    );
-
-    Handle<int> stage0cat, stage1cat, njets;
-    Handle<float> pTH, pTV;
-    iEvent.getByToken(stage0catToken_, stage0cat);
-    iEvent.getByToken(stage1catToken_, stage1cat);
-    iEvent.getByToken(njetsToken_, njets);
-    iEvent.getByToken(pTHToken_, pTH);
-    iEvent.getByToken(pTVToken_, pTV);
-
-    Handle<HTXS::HiggsClassification> htxsClassification;
-    iEvent.getByToken(newHTXSToken_, htxsClassification);
+    iEvent.getByToken( newHTXSToken_      ,     htxsClassification  );
 
     // dataformat Initialzation
     // ---------------------------------------------------------------------------------------------------------
@@ -209,9 +106,11 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
     }
 
     const edm::TriggerNames& mettriggername = iEvent.triggerNames( *mettriggerHandle );
-    auto passMETFilter = [ &mettriggerHandle, &mettriggername ] ( const std::string& triggername ) {
+    auto passMETFilter = [ this, &mettriggername ] ( const std::string& triggername ) {
          const unsigned index = mettriggername.triggerIndex( triggername );
-         return mettriggerHandle->accept( index ) && mettriggerHandle->wasrun( index ) && !mettriggerHandle->error( index );
+         return    this->mettriggerHandle->accept( index ) 
+                && this->mettriggerHandle->wasrun( index ) 
+                && !this->mettriggerHandle->error( index );
     };
                                                                                                                              
     dataformat.Flag_HBHENoiseFilter                    = passMETFilter("Flag_HBHENoiseFilter");
@@ -462,36 +361,8 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
 
     }
 
-    //Athough choosing leading diphoton information and storing them and associated ones, 
-    //but still keep global information and gen information for completeness.
-    tree->Fill();
-
 }
 
-
-void
-flashggAnalysisTreeMakerStd::beginJob()
-{
-    tree = fs_->make<TTree>( "flashggStdTree", "flashgg Standard Analysis Tree" );
-    dataformat.RegisterTree( tree );
-}
-
-void
-flashggAnalysisTreeMakerStd::endJob()
-{
-}
-
-void
-flashggAnalysisTreeMakerStd::fillDescriptions( edm::ConfigurationDescriptions &descriptions )
-{
-    //The following says we do not know what parameters are allowed so do no validation
-    // Please change this to state exactly what you do use, even if it is no parameters
-    edm::ParameterSetDescription desc;
-    desc.setUnknown();
-    descriptions.addDefault( desc );
-}
-
-DEFINE_FWK_MODULE( flashggAnalysisTreeMakerStd );
 // Local Variables:
 // mode:c++
 // indent-tabs-mode:nil

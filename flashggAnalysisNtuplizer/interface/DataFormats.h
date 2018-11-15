@@ -279,9 +279,7 @@ class flashggAnalysisTreeFormatStd
             HTXSpTV       = -999.; 
         }
 
-        void RegisterTree (TTree* Tree) {
-
-            tree = Tree;
+        void RegisterTree (TTree* tree) {
 
             tree->Branch( "EvtInfo.NPu"                                     , &NPu                                     , "EvtInfo.NPu/I"            );
             tree->Branch( "EvtInfo.NVtx"                                    , &NVtx                                    , "EvtInfo.NVtx/I"           );
@@ -418,10 +416,6 @@ class flashggAnalysisTreeFormatStd
             tree->Branch( "HTXSpTV"         , &HTXSpTV        , "HTXSpTV/F"       ); 
 
         }
-
-        void InfoFill() { tree->Fill(); }
-    private:
-        TTree* tree;
 
 };
 
