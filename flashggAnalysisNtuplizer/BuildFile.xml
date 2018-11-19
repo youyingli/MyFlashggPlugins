@@ -11,6 +11,9 @@
 <use name="flashgg/DataFormats"/>
 <use name="flashgg/MicroAOD"/>
 <use name="flashgg/Taggers"/>
+<use name="CondFormats/JetMETObjects"/>
+<use name="JetMETCorrections/Objects"/>
+<use name="JetMETCorrections/Modules"/>
 <use name="HLTrigger/HLTcore"/>
 <export>
   <lib name="1"/>

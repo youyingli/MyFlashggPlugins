@@ -26,7 +26,7 @@ class flashggAnaTreeMakerWithSyst
     public:
         flashggAnaTreeMakerWithSyst( const edm::InputTag &, const edm::ParameterSet &, edm::ConsumesCollector&& );
         ~flashggAnaTreeMakerWithSyst();
-        void Analyze( const edm::Event &, const edm::EventSetup & );
+        void Analyze( const edm::Event &, const edm::EventSetup &, bool );
         void RegisterTree( TTree* );
     
     private:
@@ -50,6 +50,7 @@ class flashggAnaTreeMakerWithSyst
         edm::EDGetTokenT<HTXS::HiggsClassification>             newHTXSToken_;
         std::string pathName_;
         bool isMiniAOD_;
+        bool storeSyst_;
         bool doHTXS_;
     
         typedef std::vector<edm::Handle<edm::View<flashgg::Jet>>> JetCollectionVector;

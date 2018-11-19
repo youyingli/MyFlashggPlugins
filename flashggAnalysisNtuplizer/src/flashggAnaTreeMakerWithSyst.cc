@@ -6,6 +6,7 @@
 #include "flashgg/Taggers/interface/LeptonSelection.h"
 
 #include "MyFlashggPlugins/flashggAnalysisNtuplizer/interface/flashggAnaTreeMakerWithSyst.h"
+#include "MyFlashggPlugins/flashggAnalysisNtuplizer/interface/JetSystematics.h"
 
 using namespace std;
 using namespace edm;
@@ -26,8 +27,9 @@ flashggAnaTreeMakerWithSyst::flashggAnaTreeMakerWithSyst( const edm::InputTag &d
     triggerToken_         ( iC.consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "TriggerTag"     ) ) ),
     mettriggerToken_      ( iC.consumes< edm::TriggerResults >                  ( iConfig.getParameter<InputTag> ( "MetTriggerTag"  ) ) )
 {
-    pathName_   = iConfig.getParameter<std::string>( "pathName" ) ;
+    pathName_   = iConfig.getParameter<string>( "pathName" ) ;
     isMiniAOD_  = iConfig.getParameter<bool>( "isMiniAOD" ) ;
+    storeSyst_  = iConfig.getParameter<bool>( "storeSyst" ) ;
     doHTXS_     = iConfig.getParameter<bool>( "doHTXS" ) ;
 
     for (unsigned i = 0 ; i < inputTagJets_.size() ; i++) {
@@ -51,7 +53,7 @@ flashggAnaTreeMakerWithSyst::RegisterTree( TTree* tree )
 }
 
 void
-flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup )
+flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::EventSetup &iSetup, bool isDiphoSystTree = false )
 {
 
     // Access edm objects
@@ -159,6 +161,24 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
         dataformat.dipho_SelectedVz           = diphoPtr->vtx()->position().z();
         dataformat.dipho_GenVz                = diphoPtr->genPV().z();
 
+        dataformat.dipho_centralWeight        = diphoPtr->centralWeight();
+        if ( storeSyst_ && !isDiphoSystTree ) {
+            dataformat.dipho_MvaLinearSystUp      = diphoPtr->weight("MvaLinearSystUp01sigma");
+            dataformat.dipho_MvaLinearSystDown    = diphoPtr->weight("MvaLinearSystDown01sigma");
+            dataformat.dipho_LooseMvaSFUp         = diphoPtr->weight("LooseMvaSFUp01sigma");
+            dataformat.dipho_LooseMvaSFDown       = diphoPtr->weight("LooseMvaSFDown01sigma");
+            dataformat.dipho_PreselSFUp           = diphoPtr->weight("PreselSFUp01sigma");
+            dataformat.dipho_PreselSFDown         = diphoPtr->weight("PreselSFDown01sigma");
+            dataformat.dipho_electronVetoSFUp     = diphoPtr->weight("electronVetoSFUp01sigma");
+            dataformat.dipho_electronVetoSFDown   = diphoPtr->weight("electronVetoSFDown01sigma");
+            dataformat.dipho_TriggerWeightUp      = diphoPtr->weight("TriggerWeightUp01sigma");
+            dataformat.dipho_TriggerWeightDown    = diphoPtr->weight("TriggerWeightDown01sigma");
+            dataformat.dipho_FracRVWeightUp       = diphoPtr->weight("FracRVWeightUp01sigma");
+            dataformat.dipho_FracRVWeightDown     = diphoPtr->weight("FracRVWeightDown01sigma");
+            dataformat.dipho_FracRVNvtxWeightUp   = diphoPtr->weight("FracRVNvtxWeightUp01sigma");
+            dataformat.dipho_FracRVNvtxWeightDown = diphoPtr->weight("FracRVNvtxWeightDown01sigma");
+        }
+
         // Electron information
         // ---------------------------------------------------------------------------------------------------------
         int Nelecs = 0;
@@ -167,24 +187,33 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
             double elecEta = fabs( it_elec->superCluster()->eta() );
             if ( elecEta > 2.5 || ( elecEta > 1.4442 && elecEta < 1.566 ) ) continue;
 
-            dataformat.elecs_Charge              .emplace_back( it_elec->charge() );
-            dataformat.elecs_Pt                  .emplace_back( it_elec->pt() );
-            dataformat.elecs_Eta                 .emplace_back( it_elec->eta() );
-            dataformat.elecs_Phi                 .emplace_back( it_elec->phi() );
-            dataformat.elecs_Energy              .emplace_back( it_elec->energy() );
-            dataformat.elecs_EtaSC               .emplace_back( it_elec->superCluster()->eta() );
-            dataformat.elecs_PhiSC               .emplace_back( it_elec->superCluster()->phi() );
-            dataformat.elecs_EGMCutBasedIDVeto   .emplace_back( it_elec->passVetoId() );
-            dataformat.elecs_EGMCutBasedIDLoose  .emplace_back( it_elec->passLooseId() );
-            dataformat.elecs_EGMCutBasedIDMedium .emplace_back( it_elec->passMediumId() );
-            dataformat.elecs_EGMCutBasedIDTight  .emplace_back( it_elec->passTightId() );
-            dataformat.elecs_fggPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.2, 0.35, 0.0 ) );
-            dataformat.elecs_tmpPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.4, 0.4, 0.0 ) );
+            dataformat.elecs_Charge                    .emplace_back( it_elec->charge() );
+            dataformat.elecs_Pt                        .emplace_back( it_elec->pt() );
+            dataformat.elecs_Eta                       .emplace_back( it_elec->eta() );
+            dataformat.elecs_Phi                       .emplace_back( it_elec->phi() );
+            dataformat.elecs_Energy                    .emplace_back( it_elec->energy() );
+            dataformat.elecs_EtaSC                     .emplace_back( it_elec->superCluster()->eta() );
+            dataformat.elecs_PhiSC                     .emplace_back( it_elec->superCluster()->phi() );
+            dataformat.elecs_EGMCutBasedIDVeto         .emplace_back( it_elec->passVetoId() );
+            dataformat.elecs_EGMCutBasedIDLoose        .emplace_back( it_elec->passLooseId() );
+            dataformat.elecs_EGMCutBasedIDMedium       .emplace_back( it_elec->passMediumId() );
+            dataformat.elecs_EGMCutBasedIDTight        .emplace_back( it_elec->passTightId() );
+            dataformat.elecs_fggPhoVeto                .emplace_back( phoVeto( it_elec, diphoPtr, 0.2, 0.35, 0.0 ) );
+            dataformat.elecs_tmpPhoVeto                .emplace_back( phoVeto( it_elec, diphoPtr, 0.4, 0.4, 0.0 ) );
+
+            dataformat.elecs_EnergyCorrFactor          .emplace_back( it_elec->userFloat("ecalTrkEnergyPostCorr") / it_elec->energy() );
+            dataformat.elecs_EnergyPostCorrErr         .emplace_back( it_elec->userFloat("ecalTrkEnergyErrPostCorr") );
+            if ( storeSyst_ && !isDiphoSystTree ) {
+                dataformat.elecs_EnergyPostCorrScaleUp     .emplace_back( it_elec->userFloat("energyScaleUp") );
+                dataformat.elecs_EnergyPostCorrScaleDown   .emplace_back( it_elec->userFloat("energyScaleDown") );
+                dataformat.elecs_EnergyPostCorrSmearUp     .emplace_back( it_elec->userFloat("energySigmaUp") );
+                dataformat.elecs_EnergyPostCorrSmearDown   .emplace_back( it_elec->userFloat("energySigmaDown") );
+            }
 
             if ( isMiniAOD_ ) {
                 dataformat.elecs_GsfTrackDz     .emplace_back( it_elec->gsfTrack()->dz( diphoPtr->vtx()->position() ) );
                 dataformat.elecs_GsfTrackDxy    .emplace_back( it_elec->gsfTrack()->dxy( diphoPtr->vtx()->position() ) );
-                if ( !iEvent.isRealData() ) {
+                if ( !iEvent.isRealData() && !isDiphoSystTree ) {
                     const reco::GenParticle* gen = it_elec->genLepton();
                     if ( gen != nullptr ) {
                         dataformat.elecs_GenMatch .emplace_back( true );
@@ -201,7 +230,7 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
                     }
                 }
             }
-
+            
             Nelecs++;
         }
         dataformat.elecs_size = Nelecs;
@@ -231,7 +260,7 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
             dataformat.muons_TrackerBasedIsoR03      .emplace_back( it_muon->fggTrkIsoSumRelR03() );
 
             if ( isMiniAOD_ ) {
-                if ( !iEvent.isRealData() ) {
+                if ( !iEvent.isRealData() && !isDiphoSystTree ) {
                     const reco::GenParticle* gen = it_muon->genLepton();
                     if ( gen != nullptr ) {
                         dataformat.muons_GenMatch .emplace_back( true );
@@ -283,7 +312,17 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
             dataformat.jets_pfDeepCSVJetTags_probc        .emplace_back( it_jet->bDiscriminator( "pfDeepCSVJetTags:probc" ) );
             dataformat.jets_pfDeepCSVJetTags_probudsg     .emplace_back( it_jet->bDiscriminator( "pfDeepCSVJetTags:probudsg" ) );
 
-            if ( isMiniAOD_ && !iEvent.isRealData() ) {
+            auto jer = flashggAnalysisNtuplizer::JERUncertainty( *it_jet, *rho, iSetup );
+            dataformat.jets_JECScale                      .emplace_back( it_jet->pt() / it_jet->correctedJet( "Uncorrected" ).pt() );
+            dataformat.jets_JERScale                      .emplace_back( std::get<0>(jer) );
+
+            if ( storeSyst_ && !isDiphoSystTree ) {
+                dataformat.jets_JECUnc                    .emplace_back( flashggAnalysisNtuplizer::JECUncertainty( *it_jet, iSetup ) );
+                dataformat.jets_JERUp                     .emplace_back( std::get<1>(jer) );
+                dataformat.jets_JERDown                   .emplace_back( std::get<2>(jer) );
+            }
+
+            if ( isMiniAOD_ && !iEvent.isRealData() && !isDiphoSystTree ) {
                 const reco::GenParticle* parton = it_jet->genParton();
                 if ( parton != nullptr ) {
                     dataformat.jets_GenPartonMatch    .emplace_back( true );
@@ -311,11 +350,30 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
         // Met information
         // ---------------------------------------------------------------------------------------------------------
         edm::Ptr<flashgg::Met> theMet = met->ptrAt( 0 );
-        dataformat.met_Pt     = theMet->pt();
-        dataformat.met_Phi    = theMet->phi();
-        dataformat.met_Px     = theMet->px();
-        dataformat.met_Py     = theMet->py();
-        dataformat.met_SumET  = theMet->sumEt();
+        dataformat.met_Pt                           = theMet->pt();
+        dataformat.met_Phi                          = theMet->phi();
+        dataformat.met_Px                           = theMet->px();
+        dataformat.met_Py                           = theMet->py();
+        dataformat.met_SumET                        = theMet->sumEt();
+
+        if ( storeSyst_ && !isDiphoSystTree ) {
+            dataformat.met_CorrPtShiftJetEnUp           = theMet->shiftedPt  ( pat::MET::JetEnUp           );
+            dataformat.met_CorrPtShiftJetEnDown         = theMet->shiftedPt  ( pat::MET::JetEnDown         );
+            dataformat.met_CorrPtShiftJetResUp          = theMet->shiftedPt  ( pat::MET::JetResUp          );
+            dataformat.met_CorrPtShiftJetResDown        = theMet->shiftedPt  ( pat::MET::JetResDown        );
+            dataformat.met_CorrPtShiftUncEnUp           = theMet->shiftedPt  ( pat::MET::UnclusteredEnUp   );
+            dataformat.met_CorrPtShiftUncEnDown         = theMet->shiftedPt  ( pat::MET::UnclusteredEnDown );
+            dataformat.met_CorrPtShiftPhoEnUp           = theMet->shiftedPt  ( pat::MET::PhotonEnUp        );
+            dataformat.met_CorrPtShiftPhoEnDown         = theMet->shiftedPt  ( pat::MET::PhotonEnDown      );
+            dataformat.met_CorrPhiShiftJetEnUp          = theMet->shiftedPhi ( pat::MET::JetEnUp           );
+            dataformat.met_CorrPhiShiftJetEnDown        = theMet->shiftedPhi ( pat::MET::JetEnDown         );
+            dataformat.met_CorrPhiShiftJetResUp         = theMet->shiftedPhi ( pat::MET::JetResUp          );
+            dataformat.met_CorrPhiShiftJetResDown       = theMet->shiftedPhi ( pat::MET::JetResDown        );
+            dataformat.met_CorrPhiShiftUncEnUp          = theMet->shiftedPhi ( pat::MET::UnclusteredEnUp   );
+            dataformat.met_CorrPhiShiftUncEnDown        = theMet->shiftedPhi ( pat::MET::UnclusteredEnDown );
+            dataformat.met_CorrPhiShiftPhoEnUp          = theMet->shiftedPhi ( pat::MET::PhotonEnUp        );
+            dataformat.met_CorrPhiShiftPhoEnDown        = theMet->shiftedPhi ( pat::MET::PhotonEnDown      );
+        }
 
     }
 
@@ -329,34 +387,36 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
 
         dataformat.genweight     = genEventInfo->weight();
 
-        int NGenParticles = 0;
-        const std::vector<edm::Ptr<reco::GenParticle> > genParticlesPtrs = genParticles->ptrs();
-        for (const auto& it_gen : genParticles->ptrs()) {
-            if ( abs(it_gen->pdgId()) > 25) continue;
-            if ( it_gen->status() > 30 ) continue;
-            if ( it_gen->pdgId() == 22      && it_gen->status() == 1 && !(it_gen->pt() > 10 || it_gen->isPromptFinalState())) continue;
-            if ( abs(it_gen->pdgId()) == 11 && it_gen->status() == 1 && !(it_gen->pt() > 3  || it_gen->isPromptFinalState())) continue;
+        if ( !isDiphoSystTree ) {
+            int NGenParticles = 0;
+            const std::vector<edm::Ptr<reco::GenParticle> > genParticlesPtrs = genParticles->ptrs();
+            for (const auto& it_gen : genParticles->ptrs()) {
+                if ( abs(it_gen->pdgId()) > 25) continue;
+                if ( it_gen->status() > 30 ) continue;
+                if ( it_gen->pdgId() == 22      && it_gen->status() == 1 && !(it_gen->pt() > 10 || it_gen->isPromptFinalState())) continue;
+                if ( abs(it_gen->pdgId()) == 11 && it_gen->status() == 1 && !(it_gen->pt() > 3  || it_gen->isPromptFinalState())) continue;
 
-            dataformat.GenParticles_Pt     .emplace_back( it_gen->pt() );
-            dataformat.GenParticles_Eta    .emplace_back( it_gen->eta() );
-            dataformat.GenParticles_Phi    .emplace_back( it_gen->phi() );
-            dataformat.GenParticles_Mass   .emplace_back( it_gen->mass() );
-            dataformat.GenParticles_PdgID  .emplace_back( it_gen->pdgId() );
-            dataformat.GenParticles_Status .emplace_back( it_gen->status() );
-            dataformat.GenParticles_nMo    .emplace_back( it_gen->numberOfMothers() );
-            dataformat.GenParticles_nDa    .emplace_back( it_gen->numberOfDaughters() );
+                dataformat.GenParticles_Pt     .emplace_back( it_gen->pt() );
+                dataformat.GenParticles_Eta    .emplace_back( it_gen->eta() );
+                dataformat.GenParticles_Phi    .emplace_back( it_gen->phi() );
+                dataformat.GenParticles_Mass   .emplace_back( it_gen->mass() );
+                dataformat.GenParticles_PdgID  .emplace_back( it_gen->pdgId() );
+                dataformat.GenParticles_Status .emplace_back( it_gen->status() );
+                dataformat.GenParticles_nMo    .emplace_back( it_gen->numberOfMothers() );
+                dataformat.GenParticles_nDa    .emplace_back( it_gen->numberOfDaughters() );
 
-            NGenParticles++;
-        }
+                NGenParticles++;
+            }
 
-        dataformat.GenParticles_size = NGenParticles;
+            dataformat.GenParticles_size = NGenParticles;
 
-        if(doHTXS_) {
-            dataformat.HTXSstage0cat = htxsClassification->stage0_cat;
-            dataformat.HTXSstage1cat = htxsClassification->stage1_cat_pTjet30GeV;
-            dataformat.HTXSnjets     = htxsClassification->jets30.size();
-            dataformat.HTXSpTH       = htxsClassification->p4decay_higgs.pt();
-            dataformat.HTXSpTV       = htxsClassification->p4decay_V.pt();
+            if(doHTXS_) {
+                dataformat.HTXSstage0cat = htxsClassification->stage0_cat;
+                dataformat.HTXSstage1cat = htxsClassification->stage1_cat_pTjet30GeV;
+                dataformat.HTXSnjets     = htxsClassification->jets30.size();
+                dataformat.HTXSpTH       = htxsClassification->p4decay_higgs.pt();
+                dataformat.HTXSpTV       = htxsClassification->p4decay_V.pt();
+            }
         }
 
     }

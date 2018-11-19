@@ -60,7 +60,7 @@ if options.processType == 'data':
 else:
     process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mc2017_realistic_v14')
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(400) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32( 1 )
@@ -148,7 +148,7 @@ process.stdDiPhotonJetsSeq += process.basicSeq
 # Systematics setting (To Do)
 #---------------------------------------------------------------------------------------------
 from MyFlashggPlugins.flashggAnalysisNtuplizer.prepareflashggDiPhotonSystematicsTask import prepareflashggDiPhotonSystematicsTask, getDiPhotonSystematicsList
-diphotonSystematicsTask = prepareflashggDiPhotonSystematicsTask(process, options.processType, True)
+diphotonSystematicsTask = prepareflashggDiPhotonSystematicsTask(process, options.processType, options.doSystematics)
 diphosystname = ['']
 diphoton = [cms.InputTag('flashggPreselectedDiPhotons')]
 
@@ -177,7 +177,7 @@ process.flashggNtuples = cms.EDAnalyzer('flashggAnaTreeMerge',
                                            MetTag                  = cms.InputTag('flashggMetsCorr'),
                                            VertexTag               = cms.InputTag('offlineSlimmedPrimaryVertices'),
                                            BeamSpotTag             = cms.InputTag('offlineBeamSpot'),
-                                           RhoTag                  = cms.InputTag('fixedGridRhoFastjetAll'),
+                                           RhoTag                  = cms.InputTag('fixedGridRhoAll'),
                                            GenParticleTag          = cms.InputTag('flashggPrunedGenParticles'),
                                            GenEventInfo            = cms.InputTag('generator'),
                                            PileUpTag               = cms.InputTag('slimmedAddPileupInfo'),
@@ -185,6 +185,7 @@ process.flashggNtuples = cms.EDAnalyzer('flashggAnaTreeMerge',
                                            MetTriggerTag           = cms.InputTag('TriggerResults::PAT'),
                                            pathName                = cms.string("HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90"),
                                            isMiniAOD               = cms.bool(options.runMiniAOD),
+                                           storeSyst               = cms.bool(options.doSystematics),
                                            doHTXS                  = cms.bool(options.doHTXS),
                                            HTXSTags                = HTXSInputTags
                                        )

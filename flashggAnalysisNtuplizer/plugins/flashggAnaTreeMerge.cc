@@ -78,7 +78,8 @@ flashggAnaTreeMerge::analyze( const edm::Event &iEvent, const edm::EventSetup &i
 {
     int itree = 0;
     for ( const auto& TreeMake : TreeMakeList_ ) {
-        TreeMake->Analyze(iEvent, iSetup);
+        if (itree == 0) TreeMake->Analyze(iEvent, iSetup, false);
+        else TreeMake->Analyze(iEvent, iSetup, true);
         trees[itree]->Fill();
         itree++;
     }
