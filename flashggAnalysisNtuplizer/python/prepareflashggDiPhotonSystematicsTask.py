@@ -33,6 +33,20 @@ def customizeSystematicsForMC(process):
         elif photonScaleUncertBins and pset.Label.value().count("Scale"):
             pset.BinList = photonScaleUncertBins
 
+def customizeVPSetForData(systs, phScaleBins):
+    newvpset = cms.VPSet()
+    for pset in systs:
+        if (pset.Label.value().count("Scale") or pset.Label.value().count("SigmaEOverESmearing")) and not pset.Label.value().count("Gain"):
+            pset.ApplyCentralValue = cms.bool(True) # Turn on central shift for data (it is off for MC)
+            if type(pset.NSigmas) == type(cms.vint32()):
+                pset.NSigmas = cms.vint32() # Do not perform shift
+            else:
+                pset.NSigmas = cms.PSet( firstVar = cms.vint32(), secondVar = cms.vint32() ) # Do not perform shift - 2D case
+            if pset.Label.value().count("Scale") and phScaleBins != None: 
+                pset.BinList = phScaleBins
+            newvpset += [pset]
+    return newvpset
+
 def includeScale_Central_Systematics(process):
     customizeSystematicsForMC(process)
 

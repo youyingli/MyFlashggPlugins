@@ -33,7 +33,7 @@ options.register('filename',
                  )
 
 options.register('doHTXS',
-                 True,
+                 False,
                  opts.VarParsing.multiplicity.singleton,
                  opts.VarParsing.varType.bool,
                  'doHTXS'
@@ -60,10 +60,10 @@ if options.processType == 'data':
 else:
     process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mc2017_realistic_v14')
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(300) )
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32( 1 )
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32( 100 )
 process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
 process.source = cms.Source ("PoolSource",
@@ -91,16 +91,6 @@ process.TFileService = cms.Service("TFileService",
 process.stdDiPhotonJetsSeq = cms.Sequence()
 
 #---------------------------------------------------------------------------------------------
-# Diphoton Trigger setting
-# Data : Directly filter during processing 
-# MC   : Store in Ntuple
-#---------------------------------------------------------------------------------------------
-from HLTrigger.HLTfilters.hltHighLevel_cfi import hltHighLevel
-process.hltHighLevel= hltHighLevel.clone(HLTPaths = cms.vstring("HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90_v*",))
-if options.processType == 'data':
-    process.stdDiPhotonJetsSeq += process.hltHighLevel
-
-#---------------------------------------------------------------------------------------------
 # Dump ntuples from MiniAOD not microAOD. Very Slow!  Default is False
 #---------------------------------------------------------------------------------------------
 if options.runMiniAOD:
@@ -112,6 +102,24 @@ if options.runMiniAOD:
     from MyFlashggPlugins.flashggAnalysisNtuplizer.prepareflashggMicroAODTask import prepareflashggMicroAODTask
     MicroAODTask = prepareflashggMicroAODTask(process, options.processType, options.filename)
     process.stdDiPhotonJetsSeq.associate( MicroAODTask )
+
+#---------------------------------------------------------------------------------------------
+# Diphoton Trigger setting
+# Data : Directly filter during processing 
+# MC   : Store in Ntuple
+#---------------------------------------------------------------------------------------------
+from HLTrigger.HLTfilters.hltHighLevel_cfi import hltHighLevel
+process.hltHighLevel= hltHighLevel.clone(HLTPaths = cms.vstring("HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90_v*",))
+if options.processType == 'data':
+    process.stdDiPhotonJetsSeq += process.hltHighLevel
+
+#---------------------------------------------------------------------------------------------
+# ee bad supercluster filter on data (Need to understand)
+#---------------------------------------------------------------------------------------------
+process.load('RecoMET.METFilters.eeBadScFilter_cfi')
+process.eeBadScFilter.EERecHitSource = cms.InputTag("reducedEgamma","reducedEERecHits") # Saved MicroAOD Collection (data only)
+if options.processType == 'data':
+    process.stdDiPhotonJetsSeq += process.eeBadScFilter
 
 #---------------------------------------------------------------------------------------------
 # DiPhoton preselection setting
@@ -145,7 +153,7 @@ process.basicSeq = cms.Sequence(process.flashggUpdatedIdMVADiPhotons
 process.stdDiPhotonJetsSeq += process.basicSeq
 
 #---------------------------------------------------------------------------------------------
-# Systematics setting (To Do)
+# Systematics setting
 #---------------------------------------------------------------------------------------------
 from MyFlashggPlugins.flashggAnalysisNtuplizer.prepareflashggDiPhotonSystematicsTask import prepareflashggDiPhotonSystematicsTask, getDiPhotonSystematicsList
 diphotonSystematicsTask = prepareflashggDiPhotonSystematicsTask(process, options.processType, options.doSystematics)
