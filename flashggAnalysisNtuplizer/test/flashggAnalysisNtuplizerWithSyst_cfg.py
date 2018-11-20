@@ -72,7 +72,8 @@ process.source = cms.Source ("PoolSource",
 #'file:myMicroAODOutputFile_4.root'
 #'file:data.root'
 #'/store/mc/RunIIFall17MiniAODv2/GluGluHToGG_M125_13TeV_amcatnloFXFX_pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/044F95FB-A342-E811-907F-5065F3816251.root'
-'file:tth.root',
+#'file:tth.root',
+'file:myMicroAODOutputFile_253.root'
 #'/store/group/phys_higgs/cmshgg/spigazzi/flashgg/RunIIFall17-3_2_0/RunIIFall17-3_2_0/DoubleEG/RunIIFall17-3_2_0-RunIIFall17-3_2_0-v0-Run2017F-09May2018-v1/181008_110542/0000/myMicroAODOutputFile_572.root'
 #'/store/data/Run2017D/DoubleEG/MINIAOD/31Mar2018-v1/00000/002F7CD1-9D37-E811-A03E-B499BAABCF1A.root'
 #'/store/group/phys_higgs/cmshgg/sethzenz/flashgg/RunIIFall17-3_1_0/3_1_0/GluGluHToGG_M125_13TeV_amcatnloFXFX_pythia8_PSWeights/RunIIFall17-3_1_0-3_1_0-v0-RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14_ext1-v1/180605_202241/0000/myMicroAODOutputFile_3.root'
@@ -200,6 +201,13 @@ process.flashggNtuples = cms.EDAnalyzer('flashggAnaTreeMerge',
 )
 
 process.stdDiPhotonJetsSeq += process.flashggNtuples
+
+
+#---------------------------------------------------------------------------------------------
+# MetFilter For Data is "RECO" lebal
+#---------------------------------------------------------------------------------------------
+if options.processType == 'data':
+    process.flashggNtuples.nondiphosetting.MetTriggerTag = cms.InputTag('TriggerResults::RECO')
 
 #---------------------------------------------------------------------------------------------
 # Final Path to run
