@@ -114,7 +114,7 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
                 && this->mettriggerHandle->wasrun( index ) 
                 && !this->mettriggerHandle->error( index );
     };
-                                                                                                                             
+
     dataformat.Flag_HBHENoiseFilter                    = passMETFilter("Flag_HBHENoiseFilter");
     dataformat.Flag_HBHENoiseIsoFilter                 = passMETFilter("Flag_HBHENoiseIsoFilter");
     dataformat.Flag_EcalDeadCellTriggerPrimitiveFilter = passMETFilter("Flag_EcalDeadCellTriggerPrimitiveFilter");
@@ -124,6 +124,48 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
     dataformat.Flag_BadChargedCandidateFilter          = passMETFilter("Flag_BadChargedCandidateFilter");
     dataformat.Flag_ecalBadCalibFilter                 = passMETFilter("Flag_ecalBadCalibFilter");
     dataformat.Flag_eeBadScFilter                      = iEvent.isRealData() ? passMETFilter("Flag_eeBadScFilter") : true;
+
+    // Gen information
+    if (!iEvent.isRealData()) {
+        for( unsigned int PVI = 0; PVI < pileupInfo->size(); ++PVI ) {
+            Int_t pu_bunchcrossing = pileupInfo->ptrAt( PVI )->getBunchCrossing();
+            if( pu_bunchcrossing == 0 ) { dataformat.NPu = pileupInfo->ptrAt( PVI )->getTrueNumInteractions(); break; }
+        }
+
+        dataformat.genweight     = genEventInfo->weight();
+
+        if ( !isDiphoSystTree ) {
+            int NGenParticles = 0;
+            const std::vector<edm::Ptr<reco::GenParticle> > genParticlesPtrs = genParticles->ptrs();
+            for (const auto& it_gen : genParticles->ptrs()) {
+                if ( abs(it_gen->pdgId()) > 25) continue;
+                if ( it_gen->status() > 30 ) continue;
+                if ( it_gen->pdgId() == 22      && it_gen->status() == 1 && !(it_gen->pt() > 10 || it_gen->isPromptFinalState())) continue;
+                if ( abs(it_gen->pdgId()) == 11 && it_gen->status() == 1 && !(it_gen->pt() > 3  || it_gen->isPromptFinalState())) continue;
+
+                dataformat.GenParticles_Pt     .emplace_back( it_gen->pt() );
+                dataformat.GenParticles_Eta    .emplace_back( it_gen->eta() );
+                dataformat.GenParticles_Phi    .emplace_back( it_gen->phi() );
+                dataformat.GenParticles_Mass   .emplace_back( it_gen->mass() );
+                dataformat.GenParticles_PdgID  .emplace_back( it_gen->pdgId() );
+                dataformat.GenParticles_Status .emplace_back( it_gen->status() );
+                dataformat.GenParticles_nMo    .emplace_back( it_gen->numberOfMothers() );
+                dataformat.GenParticles_nDa    .emplace_back( it_gen->numberOfDaughters() );
+
+                NGenParticles++;
+            }
+
+            dataformat.GenParticles_size = NGenParticles;
+
+            if(doHTXS_) {
+                dataformat.HTXSstage0cat = htxsClassification->stage0_cat;
+                dataformat.HTXSstage1cat = htxsClassification->stage1_cat_pTjet30GeV;
+                dataformat.HTXSnjets     = htxsClassification->jets30.size();
+                dataformat.HTXSpTH       = htxsClassification->p4decay_higgs.pt();
+                dataformat.HTXSpTV       = htxsClassification->p4decay_V.pt();
+            }
+        }
+    }
 
     // Choose leading diphoton information and store them and associated ones
     const std::vector<edm::Ptr<flashgg::DiPhotonCandidate> > diphotonPtrs = diphotons->ptrs();
@@ -374,50 +416,9 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
             dataformat.met_CorrPhiShiftPhoEnUp          = theMet->shiftedPhi ( pat::MET::PhotonEnUp        );
             dataformat.met_CorrPhiShiftPhoEnDown        = theMet->shiftedPhi ( pat::MET::PhotonEnDown      );
         }
-
-    }
-
-    // Gen information
-    // ---------------------------------------------------------------------------------------------------------
-    if (!iEvent.isRealData()) {
-        for( unsigned int PVI = 0; PVI < pileupInfo->size(); ++PVI ) {
-            Int_t pu_bunchcrossing = pileupInfo->ptrAt( PVI )->getBunchCrossing();
-            if( pu_bunchcrossing == 0 ) { dataformat.NPu = pileupInfo->ptrAt( PVI )->getTrueNumInteractions(); break; }
-        }
-
-        dataformat.genweight     = genEventInfo->weight();
-
-        if ( !isDiphoSystTree ) {
-            int NGenParticles = 0;
-            const std::vector<edm::Ptr<reco::GenParticle> > genParticlesPtrs = genParticles->ptrs();
-            for (const auto& it_gen : genParticles->ptrs()) {
-                if ( abs(it_gen->pdgId()) > 25) continue;
-                if ( it_gen->status() > 30 ) continue;
-                if ( it_gen->pdgId() == 22      && it_gen->status() == 1 && !(it_gen->pt() > 10 || it_gen->isPromptFinalState())) continue;
-                if ( abs(it_gen->pdgId()) == 11 && it_gen->status() == 1 && !(it_gen->pt() > 3  || it_gen->isPromptFinalState())) continue;
-
-                dataformat.GenParticles_Pt     .emplace_back( it_gen->pt() );
-                dataformat.GenParticles_Eta    .emplace_back( it_gen->eta() );
-                dataformat.GenParticles_Phi    .emplace_back( it_gen->phi() );
-                dataformat.GenParticles_Mass   .emplace_back( it_gen->mass() );
-                dataformat.GenParticles_PdgID  .emplace_back( it_gen->pdgId() );
-                dataformat.GenParticles_Status .emplace_back( it_gen->status() );
-                dataformat.GenParticles_nMo    .emplace_back( it_gen->numberOfMothers() );
-                dataformat.GenParticles_nDa    .emplace_back( it_gen->numberOfDaughters() );
-
-                NGenParticles++;
-            }
-
-            dataformat.GenParticles_size = NGenParticles;
-
-            if(doHTXS_) {
-                dataformat.HTXSstage0cat = htxsClassification->stage0_cat;
-                dataformat.HTXSstage1cat = htxsClassification->stage1_cat_pTjet30GeV;
-                dataformat.HTXSnjets     = htxsClassification->jets30.size();
-                dataformat.HTXSpTH       = htxsClassification->p4decay_higgs.pt();
-                dataformat.HTXSpTV       = htxsClassification->p4decay_V.pt();
-            }
-        }
+        
+        //Only store the first diphoton candidate which passes diphoton preselection
+        if (dataformat.dipho_mass > 100.) dataformat.TreeFill();
 
     }
 
