@@ -38,7 +38,7 @@ def includePFMET(process, isMC):
     from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncFromMiniAOD
     runMetCorAndUncFromMiniAOD(process,
                          isData = (not isMC),
-                         fixEE2017 = (not isMC),
+                         fixEE2017 = True,
                          fixEE2017Params = {'userawPt': True, 'PtThreshold':50.0, 'MinEtaThreshold':2.65, 'MaxEtaThreshold': 3.139},
                          # will produce new MET collection: slimmedMETsModifiedMET
                          postfix = "ModifiedMET",
@@ -133,7 +133,7 @@ def includeHTXS(process):
                                          )
 
 # signal specific setting
-def prepareSignal(process, filename):
+def prepareSignal(process, filename, doHTXS):
 
     includeflashggDiphoton(process)
     includeflashggLepton(process)
@@ -142,14 +142,15 @@ def prepareSignal(process, filename):
     includeFall17EleID(process)
     includeFall17EGMPhoID(process)
     includeflashggGenInfo(process)
-    includeHTXS(process)
-    includeflashggPDFs(process)
+    if doHTXS:
+        includeHTXS(process)
+    #includeflashggPDFs(process)
 
     if filename.find("GluGlu") != -1:
         process.rivetProducerHTXS.ProductionMode = "GGF"
-    if filename.find("THQ") != -1 or filename.find("THW") != -1:
-        process.flashggPDFWeightObject.isStandardSample = False
-        process.flashggPDFWeightObject.isThqSample = True
+    #if filename.find("THQ") != -1 or filename.find("THW") != -1:
+    #    process.flashggPDFWeightObject.isStandardSample = False
+    #    process.flashggPDFWeightObject.isThqSample = True
 
     process.flashggGenPhotonsExtra.defaultType = 1
 
@@ -177,17 +178,17 @@ def prepareData(process):
     includeFall17EleID(process)
     includeFall17EGMPhoID(process)
 
-    from MyFlashggPlugins.flashggAnalysisNtuplizer.flashggJets2_cfi import maxJetCollections
+    from MyFlashggPlugins.flashggAnalysisNtuplizer.flashggJets_cfi import maxJetCollections
     for vtx in range(0, maxJetCollections):
         delattr(process, "patJetGenJetMatchAK4PFCHSLeg%i"%vtx)
         delattr(process, "patJetFlavourAssociationAK4PFCHSLeg%i"%vtx)
         delattr(process, "patJetPartons%i"%vtx)
         delattr(process, "patJetPartonMatchAK4PFCHSLeg%i"%vtx)
 
-def prepareflashggMicroAODTask(process, processType, filename):
+def prepareflashggMicroAODTask(process, processType, filename, doHTXS = False):
 
     if processType == 'sig':
-        prepareSignal(process, filename)
+        prepareSignal(process, filename, doHTXS)
     elif processType == 'bkg':
         prepareBackground(process, filename)
     elif processType == 'data':

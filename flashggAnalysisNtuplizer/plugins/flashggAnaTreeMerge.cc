@@ -33,7 +33,6 @@ class flashggAnaTreeMerge : public edm::EDAnalyzer
     
     
         std::vector<std::string> DiphoSystNames_; 
-        std::vector<TTree*> trees;
         std::vector<flashggAnaTreeMakerWithSyst*> TreeMakeList_;
 
 };
@@ -63,7 +62,6 @@ flashggAnaTreeMerge::beginJob()
     for ( auto& TreeMake : TreeMakeList_ ) {
         TTree* tree = fs_->make<TTree>( Form("flashggStdTree%s",DiphoSystNames_[i_syst].c_str()), "" );
         TreeMake->RegisterTree( tree );
-        trees.emplace_back( tree );
         i_syst++;
     }
 }
