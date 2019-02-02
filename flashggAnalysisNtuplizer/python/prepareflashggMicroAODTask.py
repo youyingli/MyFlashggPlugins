@@ -97,6 +97,9 @@ def includeSummer16EGMPhoID(process):
     my_id_modules = ['RecoEgamma.PhotonIdentification.Identification.mvaPhotonID_Spring16_nonTrig_V1_cff']
     for idmod in my_id_modules:
         setupAllVIDIdsInModule(process,idmod,setupVIDPhotonSelection)
+    process.flashggPhotons.is2017 = cms.bool(False)
+    process.flashggPhotons.effAreasConfigFile = cms.FileInPath("RecoEgamma/PhotonIdentification/data/Spring16/effAreaPhotons_cone03_pfPhotons_90percentBased.txt")
+    process.flashggPhotons.egmMvaValuesMap = cms.InputTag("photonMVAValueMapProducer:PhotonMVAEstimatorRun2Spring16NonTrigV1Values")
 
 def includeFall17EGMPhoID(process):
     from PhysicsTools.SelectorUtils.tools.vid_id_tools import DataFormat,switchOnVIDPhotonIdProducer,setupAllVIDIdsInModule,setupVIDPhotonSelection
@@ -105,6 +108,7 @@ def includeFall17EGMPhoID(process):
     my_id_modules = ['RecoEgamma.PhotonIdentification.Identification.mvaPhotonID_Fall17_94X_V1_cff']
     for idmod in my_id_modules:
         setupAllVIDIdsInModule(process,idmod,setupVIDPhotonSelection)
+    process.flashggPhotons.is2017 = cms.bool(True)
     process.flashggPhotons.effAreasConfigFile = cms.FileInPath("RecoEgamma/PhotonIdentification/data/Fall17/effAreaPhotons_cone03_pfPhotons_90percentBased_TrueVtx.txt")
     process.flashggPhotons.egmMvaValuesMap = cms.InputTag("photonMVAValueMapProducer:PhotonMVAEstimatorRunIIFall17v1Values")
 
@@ -133,14 +137,20 @@ def includeHTXS(process):
                                          )
 
 # signal specific setting
-def prepareSignal(process, filename, doHTXS):
+def prepareSignal(process, filename, doHTXS, year):
 
     includeflashggDiphoton(process)
     includeflashggLepton(process)
     includeflashggJet(process, isMC = True)
     includePFMET(process, isMC = True)
-    includeFall17EleID(process)
-    includeFall17EGMPhoID(process)
+
+    if year == '2016':
+        includeSummer16EleID(process)
+        includeSummer16EGMPhoID(process)
+    else:
+        includeFall17EleID(process)
+        includeFall17EGMPhoID(process)
+
     includeflashggGenInfo(process)
     if doHTXS:
         includeHTXS(process)
@@ -155,28 +165,38 @@ def prepareSignal(process, filename, doHTXS):
     process.flashggGenPhotonsExtra.defaultType = 1
 
 # background specific setting
-def prepareBackground(process, filename):
+def prepareBackground(process, filename, year):
 
     includeflashggDiphoton(process)
     includeflashggLepton(process)
     includeflashggJet(process, isMC = True)
     includePFMET(process, isMC = True)
-    includeFall17EleID(process)
-    includeFall17EGMPhoID(process)
-    includeflashggGenInfo(process)
 
+    if year == '2016':
+        includeSummer16EleID(process)
+        includeSummer16EGMPhoID(process)
+    else:
+        includeFall17EleID(process)
+        includeFall17EGMPhoID(process)
+
+    includeflashggGenInfo(process)
     if filename.find("Sherpa") != -1:
         process.flashggGenPhotonsExtra.defaultType = 1
 
 # data specific setting
-def prepareData(process):
+def prepareData(process, year):
 
     includeflashggDiphoton(process)
     includeflashggLepton(process)
     includeflashggJet(process, isMC = False)
     includePFMET(process, isMC = False)
-    includeFall17EleID(process)
-    includeFall17EGMPhoID(process)
+
+    if year == '2016':
+        includeSummer16EleID(process)
+        includeSummer16EGMPhoID(process)
+    else:
+        includeFall17EleID(process)
+        includeFall17EGMPhoID(process)
 
     from MyFlashggPlugins.flashggAnalysisNtuplizer.flashggJets_cfi import maxJetCollections
     for vtx in range(0, maxJetCollections):
@@ -185,14 +205,14 @@ def prepareData(process):
         delattr(process, "patJetPartons%i"%vtx)
         delattr(process, "patJetPartonMatchAK4PFCHSLeg%i"%vtx)
 
-def prepareflashggMicroAODTask(process, processType, filename, doHTXS = False):
+def prepareflashggMicroAODTask(process, processType, filename, doHTXS = False, year = '2017'):
 
     if processType == 'sig':
-        prepareSignal(process, filename, doHTXS)
+        prepareSignal(process, filename, doHTXS, year)
     elif processType == 'bkg':
-        prepareBackground(process, filename)
+        prepareBackground(process, filename, year)
     elif processType == 'data':
-        prepareData(process, filename)
+        prepareData(process, filename, year)
     else:
         raise Exception, "Please specify 'sig', 'bkg', 'data'"
 

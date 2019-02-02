@@ -4,11 +4,11 @@ import FWCore.ParameterSet.VarParsing as opts
 
 options = opts.VarParsing ('analysis')
 
-options.register('Era',
-                 "2017",
+options.register('Year',
+                 '2017',
                  opts.VarParsing.multiplicity.singleton,
                  opts.VarParsing.varType.string,
-                 'Era'
+                 'Year'
                  )
 
 options.register('runMiniAOD',
@@ -102,7 +102,7 @@ if options.runMiniAOD:
             )
 
     from MyFlashggPlugins.flashggAnalysisNtuplizer.prepareflashggMicroAODTask import prepareflashggMicroAODTask
-    MicroAODTask = prepareflashggMicroAODTask(process, options.processType, options.filename, options.doHTXS)
+    MicroAODTask = prepareflashggMicroAODTask(process, options.processType, options.filename, options.doHTXS, options.Year)
     process.stdDiPhotonJetsSeq.associate( MicroAODTask )
 
 #---------------------------------------------------------------------------------------------
