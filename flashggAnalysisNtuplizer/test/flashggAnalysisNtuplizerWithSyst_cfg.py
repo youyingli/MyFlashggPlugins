@@ -4,11 +4,11 @@ import FWCore.ParameterSet.VarParsing as opts
 
 options = opts.VarParsing ('analysis')
 
-options.register('Year',
+options.register('year',
                  '2017',
                  opts.VarParsing.multiplicity.singleton,
                  opts.VarParsing.varType.string,
-                 'Year'
+                 'year'
                  )
 
 options.register('runMiniAOD',
@@ -55,10 +55,17 @@ process.load("Configuration.StandardSequences.GeometryDB_cff")
 process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 from Configuration.AlCa.GlobalTag import GlobalTag
-if options.processType == 'data':
-    process.GlobalTag = GlobalTag(process.GlobalTag, '94X_dataRun2_ReReco_EOY17_v6')
-else:
-    process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mc2017_realistic_v14')
+
+if options.year == '2016':
+    if options.processType == 'data':
+        process.GlobalTag = GlobalTag(process.GlobalTag, '94X_dataRun2_v10')
+    else:
+        process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mcRun2_asymptotic_v3')
+elif options.year == '2017':
+    if options.processType == 'data':
+        process.GlobalTag = GlobalTag(process.GlobalTag, '94X_dataRun2_ReReco_EOY17_v6')
+    else:
+        process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mc2017_realistic_v14')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(300) )
 
@@ -102,7 +109,7 @@ if options.runMiniAOD:
             )
 
     from MyFlashggPlugins.flashggAnalysisNtuplizer.prepareflashggMicroAODTask import prepareflashggMicroAODTask
-    MicroAODTask = prepareflashggMicroAODTask(process, options.processType, options.filename, options.doHTXS, options.Year)
+    MicroAODTask = prepareflashggMicroAODTask(process, options.processType, options.filename, options.doHTXS, options.year)
     process.stdDiPhotonJetsSeq.associate( MicroAODTask )
 
 #---------------------------------------------------------------------------------------------
