@@ -102,7 +102,13 @@ def prepareflashggDiPhotonSystematicsTask(process, processType, doSystematics = 
                                 src = cms.InputTag('flashggDiPhotonSystematics', phosystlabel)
                             )
             )
+            setattr( process, 'flashggDiPhotonMVA' + phosystlabel,
+                            process.flashggDiPhotonMVA.clone(
+                                DiPhotonTag = cms.InputTag('flashggPreselectedDiPhotons' + phosystlabel)
+                            )
+            )
 
             SystTask.add( getattr( process, 'flashggPreselectedDiPhotons' + phosystlabel ) )
+            SystTask.add( getattr( process, 'flashggDiPhotonMVA' + phosystlabel ) )
 
     return SystTask

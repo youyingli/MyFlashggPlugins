@@ -33,7 +33,7 @@ def includeflashggJet(process, isMC):
     setattr(process, 'flashggVertexMapForCHS', flashggVertexMapForCHS)
     setattr(process, 'flashggFinalJets', flashggFinalJets)
 
-def includePFMET(process, isMC):
+def includePFMET(process, isMC, year):
 
     from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncFromMiniAOD
     runMetCorAndUncFromMiniAOD(process,
@@ -43,9 +43,14 @@ def includePFMET(process, isMC):
                          # will produce new MET collection: slimmedMETsModifiedMET
                          postfix = "ModifiedMET",
                          )
+
+    met_tag = 'slimmedMETs'
+    if year == '2017':
+        met_tag = 'slimmedMETsModifiedMET'
+
     process.flashggMetsCorr = cms.EDProducer('FlashggMetProducer',
                                           verbose = cms.untracked.bool(False),
-                                          metTag = cms.InputTag('slimmedMETsModifiedMET'),
+                                          metTag  = cms.InputTag(met_tag),
                                           )
 
 def includeSummer16EleID(process):
@@ -142,7 +147,7 @@ def prepareSignal(process, filename, doHTXS, year):
     includeflashggDiphoton(process)
     includeflashggLepton(process)
     includeflashggJet(process, isMC = True)
-    includePFMET(process, isMC = True)
+    includePFMET(process, True, year)
 
     if year == '2016':
         includeSummer16EleID(process)
@@ -170,7 +175,7 @@ def prepareBackground(process, filename, year):
     includeflashggDiphoton(process)
     includeflashggLepton(process)
     includeflashggJet(process, isMC = True)
-    includePFMET(process, isMC = True)
+    includePFMET(process, True, year)
 
     if year == '2016':
         includeSummer16EleID(process)
@@ -189,7 +194,7 @@ def prepareData(process, year):
     includeflashggDiphoton(process)
     includeflashggLepton(process)
     includeflashggJet(process, isMC = False)
-    includePFMET(process, isMC = False)
+    includePFMET(process, False, year)
 
     if year == '2016':
         includeSummer16EleID(process)

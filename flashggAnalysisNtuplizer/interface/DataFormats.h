@@ -51,6 +51,7 @@ class flashggAnalysisTreeFormatStd
         bool  dipho_subleadhasPixelSeed  ;
         bool  dipho_subleadGenMatch      ;
         int   dipho_subleadGenMatchType  ;
+        float dipho_diphotonMVA          ;
         float dipho_SelectedVz           ;
         float dipho_GenVz                ;
         float dipho_centralWeight        ; 
@@ -229,6 +230,7 @@ class flashggAnalysisTreeFormatStd
             dipho_subleadhasPixelSeed      = false;
             dipho_subleadGenMatch          = false; 
             dipho_subleadGenMatchType      = -999;
+            dipho_diphotonMVA              = -999.;
             dipho_SelectedVz               = -999.;
             dipho_GenVz                    = -999.;
             dipho_centralWeight            = -999.; 
@@ -410,6 +412,7 @@ class flashggAnalysisTreeFormatStd
             tree_->Branch( "DiPhoInfo.subleadhasPixelSeed"     , &dipho_subleadhasPixelSeed    , "DiPhoInfo.subleadhasPixelSeed/O"  );
             tree_->Branch( "DiPhoInfo.subleadGenMatch"         , &dipho_subleadGenMatch        , "DiPhoInfo.subleadGenMatch/O"      );
             tree_->Branch( "DiPhoInfo.subleadGenMatchType"     , &dipho_subleadGenMatchType    , "DiPhoInfo.subleadGenMatchType/I"  );
+            tree_->Branch( "DiPhoInfo.diphotonMVA"             , &dipho_diphotonMVA            , "DiPhoInfo.diphotonMVA/F"          );
             tree_->Branch( "DiPhoInfo.SelectedVz"              , &dipho_SelectedVz             , "DiPhoInfo.SelectedVz/F"           );
             tree_->Branch( "DiPhoInfo.GenVz"                   , &dipho_GenVz                  , "DiPhoInfo.GenVz/F"                );
             tree_->Branch( "DiPhoInfo.centralWeight"           , &dipho_centralWeight          , "DiPhoInfo.centralWeight/F"        );

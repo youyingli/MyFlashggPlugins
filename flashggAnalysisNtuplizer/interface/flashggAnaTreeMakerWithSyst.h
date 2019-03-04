@@ -8,6 +8,7 @@
 #include "FWCore/Framework/interface/ConsumesCollector.h"
 
 #include "flashgg/DataFormats/interface/DiPhotonCandidate.h"
+#include "flashgg/DataFormats/interface/DiPhotonMVAResult.h"
 #include "flashgg/DataFormats/interface/Jet.h"
 #include "flashgg/DataFormats/interface/Electron.h"
 #include "flashgg/DataFormats/interface/Muon.h"
@@ -24,7 +25,7 @@
 class flashggAnaTreeMakerWithSyst
 {
     public:
-        flashggAnaTreeMakerWithSyst( const edm::InputTag &, const edm::ParameterSet &, edm::ConsumesCollector&& );
+        flashggAnaTreeMakerWithSyst( const edm::InputTag &, const edm::InputTag &, const edm::ParameterSet &, edm::ConsumesCollector&& );
         ~flashggAnaTreeMakerWithSyst();
         void Analyze( const edm::Event &, const edm::EventSetup &, bool );
         void RegisterTree( TTree* );
@@ -34,6 +35,7 @@ class flashggAnaTreeMakerWithSyst
         flashggAnalysisTreeFormatStd dataformat;
     
         edm::EDGetTokenT<edm::View<flashgg::DiPhotonCandidate>> diphotonToken_;
+        edm::EDGetTokenT<edm::View<flashgg::DiPhotonMVAResult>> diphotonMVAToken_;
         std::vector<edm::InputTag> inputTagJets_;
         std::vector<edm::EDGetTokenT<edm::View<flashgg::Jet>>>  tokenJets_;
         edm::EDGetTokenT<edm::View<flashgg::Electron>>          electronToken_;
@@ -55,6 +57,7 @@ class flashggAnaTreeMakerWithSyst
     
         typedef std::vector<edm::Handle<edm::View<flashgg::Jet>>> JetCollectionVector;
         edm::Handle<edm::View<flashgg::DiPhotonCandidate> >   diphotons;
+        edm::Handle<edm::View<flashgg::DiPhotonMVAResult> >   diphotonMVAs;
         edm::Handle<edm::View<flashgg::Electron> >            electrons;
         edm::Handle<edm::View<flashgg::Muon> >                muons;
         edm::Handle<edm::View<flashgg::Met> >                 met;

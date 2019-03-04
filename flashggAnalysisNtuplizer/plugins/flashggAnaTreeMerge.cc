@@ -40,12 +40,16 @@ class flashggAnaTreeMerge : public edm::EDAnalyzer
 flashggAnaTreeMerge::flashggAnaTreeMerge( const edm::ParameterSet &iConfig ):
     DiphoSystNames_(iConfig.getParameter<vector<string>>( "diphosystnames" ))
 {
-    vector<edm::InputTag> diphotons          = iConfig.getParameter<vector<edm::InputTag>>( "diphotons" );
-    const auto&           NonDiphoSetting    = iConfig.getParameter<edm::ParameterSet>( "nondiphosetting" );
+    std::vector<edm::InputTag> diphotons        = iConfig.getParameter<std::vector<edm::InputTag>>( "diphotons" );
+    std::vector<edm::InputTag> diphotonMVAs     = iConfig.getParameter<std::vector<edm::InputTag>>( "diphotonMVAs" );
+    const auto&           NonDiphoSetting       = iConfig.getParameter<edm::ParameterSet>( "nondiphosetting" );
 
-    for ( const auto& i_diphoton : diphotons ) {
-        TreeMakeList_.emplace_back( new flashggAnaTreeMakerWithSyst( i_diphoton, NonDiphoSetting, consumesCollector() ) );
-    }
+    for ( unsigned int i_diphoton = 0; i_diphoton < diphotons.size(); i_diphoton++ )
+        TreeMakeList_.emplace_back( new flashggAnaTreeMakerWithSyst( diphotons[i_diphoton], diphotonMVAs[i_diphoton], 
+                                                                     NonDiphoSetting, consumesCollector() ) );
+    //for ( const auto& i_diphoton : diphotons ) {
+    //    TreeMakeList_.emplace_back( new flashggAnaTreeMakerWithSyst( i_diphoton, NonDiphoSetting, consumesCollector() ) );
+    //}
 }
 
 flashggAnaTreeMerge::~flashggAnaTreeMerge()

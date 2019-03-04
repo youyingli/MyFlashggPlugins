@@ -40,7 +40,7 @@ options.register('doHTXS',
                  )
 
 options.register('doSystematics',
-                 True,
+                 False,
                  opts.VarParsing.multiplicity.singleton,
                  opts.VarParsing.varType.bool,
                  'doSystematics'
@@ -95,7 +95,7 @@ process.TFileService = cms.Service("TFileService",
                                    fileName = cms.string("DiPhotonNtuples.root")
 )
 
-#Modules builder
+# Modules builder
 #**************************************************************
 process.stdDiPhotonJetsSeq = cms.Sequence()
 
@@ -131,10 +131,11 @@ if options.processType == 'data':
     process.stdDiPhotonJetsSeq += process.eeBadScFilter
 
 #---------------------------------------------------------------------------------------------
-# DiPhoton preselection setting
+# DiPhoton preselection and MVA setting
 #---------------------------------------------------------------------------------------------
-process.load("flashgg/Taggers/flashggUpdatedIdMVADiPhotons_cfi")
-process.load("flashgg/Taggers/flashggPreselectedDiPhotons_cfi")
+process.load("flashgg.Taggers.flashggUpdatedIdMVADiPhotons_cfi")
+process.load("flashgg.Taggers.flashggPreselectedDiPhotons_cfi")
+process.load("flashgg.Taggers.flashggDiPhotonMVA_cfi")
 
 #---------------------------------------------------------------------------------------------
 # Jets unpack setting
@@ -156,6 +157,7 @@ for i in range(0,maxJetCollections):
 #---------------------------------------------------------------------------------------------
 process.basicSeq = cms.Sequence(process.flashggUpdatedIdMVADiPhotons
                                *process.flashggPreselectedDiPhotons
+                               *process.flashggDiPhotonMVA
                                *process.flashggUnpackedJets
                                 )
 
@@ -168,11 +170,13 @@ from MyFlashggPlugins.flashggAnalysisNtuplizer.prepareflashggDiPhotonSystematics
 diphotonSystematicsTask = prepareflashggDiPhotonSystematicsTask(process, options.processType, options.doSystematics)
 diphosystname = ['']
 diphoton = [cms.InputTag('flashggPreselectedDiPhotons')]
+diphotonMVA = [cms.InputTag('flashggDiPhotonMVA')]
 
 if options.doSystematics:
     for syst in getDiPhotonSystematicsList():
         diphosystname.append(syst)
         diphoton.append(cms.InputTag('flashggPreselectedDiPhotons' + syst))
+        diphotonMVA.append(cms.InputTag('flashggDiPhotonMVA' + syst))
 
 #---------------------------------------------------------------------------------------------
 # Customize your own settings based on exist modules
@@ -187,6 +191,7 @@ from flashgg.Taggers.flashggTags_cff import HTXSInputTags
 process.flashggNtuples = cms.EDAnalyzer('flashggAnaTreeMerge',
                                        diphosystnames  = cms.vstring(diphosystname),
                                        diphotons       = cms.VInputTag(diphoton),
+                                       diphotonMVAs    = cms.VInputTag(diphotonMVA),
                                        nondiphosetting = cms.PSet(
                                            inputTagJets            = UnpackedJetCollectionVInputTag,
                                            ElectronTag             = cms.InputTag('flashggSelectedElectrons'),
@@ -210,7 +215,6 @@ process.flashggNtuples = cms.EDAnalyzer('flashggAnaTreeMerge',
 )
 
 process.stdDiPhotonJetsSeq *= process.flashggNtuples
-
 
 #---------------------------------------------------------------------------------------------
 # MetFilter For Data is "RECO" lebal

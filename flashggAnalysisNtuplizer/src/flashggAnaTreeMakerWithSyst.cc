@@ -12,8 +12,10 @@ using namespace std;
 using namespace edm;
 using namespace flashgg;
 
-flashggAnaTreeMakerWithSyst::flashggAnaTreeMakerWithSyst( const edm::InputTag &diphoton, const edm::ParameterSet &iConfig, edm::ConsumesCollector&& iC):
+flashggAnaTreeMakerWithSyst::flashggAnaTreeMakerWithSyst( const edm::InputTag &diphoton, const edm::InputTag &diphotonMVA,
+                                                          const edm::ParameterSet &iConfig, edm::ConsumesCollector&& iC):
     diphotonToken_        ( iC.consumes< View<flashgg::DiPhotonCandidate> >     ( diphoton                                            ) ),
+    diphotonMVAToken_     ( iC.consumes< View<flashgg::DiPhotonMVAResult> >     ( diphotonMVA                                         ) ),
     inputTagJets_         ( iConfig.getParameter<vector<edm::InputTag> >( "inputTagJets" )                                              ),
     electronToken_        ( iC.consumes< View<flashgg::Electron> >              ( iConfig.getParameter<InputTag> ( "ElectronTag"    ) ) ),
     muonToken_            ( iC.consumes< View<flashgg::Muon> >                  ( iConfig.getParameter<InputTag> ( "MuonTag"        ) ) ),
@@ -61,6 +63,7 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
     JetCollectionVector Jets( inputTagJets_.size() );
 
     iEvent.getByToken( diphotonToken_     ,     diphotons           );
+    iEvent.getByToken( diphotonMVAToken_  ,     diphotonMVAs        );
     for( size_t j = 0; j < inputTagJets_.size(); ++j ) 
         iEvent.getByToken( tokenJets_[j], Jets[j] );
     iEvent.getByToken( electronToken_     ,     electrons           );
@@ -169,11 +172,13 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
 
     // Choose leading diphoton information and store them and associated ones
     const std::vector<edm::Ptr<flashgg::DiPhotonCandidate> > diphotonPtrs = diphotons->ptrs();
+    const std::vector<edm::Ptr<flashgg::DiPhotonMVAResult> > diphotonMVAPtrs = diphotonMVAs->ptrs();
     if (diphotonPtrs.size() > 0) {
 
         // DiPhoton information 
         // ---------------------------------------------------------------------------------------------------------
-        const Ptr<flashgg::DiPhotonCandidate> diphoPtr = diphotonPtrs[0];
+        const Ptr<flashgg::DiPhotonCandidate> diphoPtr    = diphotonPtrs[0];
+        const Ptr<flashgg::DiPhotonMVAResult> diphoMVAPtr = diphotonMVAPtrs[0];
         dataformat.dipho_mass                 = diphoPtr->mass();
         dataformat.dipho_pt                   = diphoPtr->pt();
         dataformat.dipho_leadPt               = diphoPtr->leadingPhoton()->pt();
@@ -200,6 +205,7 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
         dataformat.dipho_subleadhasPixelSeed  = diphoPtr->subLeadingPhoton()->hasPixelSeed();
         dataformat.dipho_subleadGenMatch      = diphoPtr->subLeadingPhoton()->hasMatchedGenPhoton();
         dataformat.dipho_subleadGenMatchType  = diphoPtr->subLeadingPhoton()->genMatchType();
+        dataformat.dipho_diphotonMVA          = diphoMVAPtr->result;
         dataformat.dipho_SelectedVz           = diphoPtr->vtx()->position().z();
         dataformat.dipho_GenVz                = diphoPtr->genPV().z();
 
