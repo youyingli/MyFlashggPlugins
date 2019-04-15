@@ -47,9 +47,6 @@ flashggAnaTreeMerge::flashggAnaTreeMerge( const edm::ParameterSet &iConfig ):
     for ( unsigned int i_diphoton = 0; i_diphoton < diphotons.size(); i_diphoton++ )
         TreeMakeList_.emplace_back( new flashggAnaTreeMakerWithSyst( diphotons[i_diphoton], diphotonMVAs[i_diphoton], 
                                                                      NonDiphoSetting, consumesCollector() ) );
-    //for ( const auto& i_diphoton : diphotons ) {
-    //    TreeMakeList_.emplace_back( new flashggAnaTreeMakerWithSyst( i_diphoton, NonDiphoSetting, consumesCollector() ) );
-    //}
 }
 
 flashggAnaTreeMerge::~flashggAnaTreeMerge()

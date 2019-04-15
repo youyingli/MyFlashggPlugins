@@ -220,8 +220,6 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
     dataformat.Flag_goodVertices                       = passMETFilter("Flag_goodVertices");
     dataformat.Flag_globalSuperTightHalo2016Filter     = passMETFilter("Flag_globalSuperTightHalo2016Filter");
     dataformat.Flag_BadPFMuonFilter                    = passMETFilter("Flag_BadPFMuonFilter");
-    dataformat.Flag_BadChargedCandidateFilter          = passMETFilter("Flag_BadChargedCandidateFilter");
-    dataformat.Flag_ecalBadCalibFilter                 = passMETFilter("Flag_ecalBadCalibFilter");
     dataformat.Flag_eeBadScFilter                      = iEvent.isRealData() ? passMETFilter("Flag_eeBadScFilter") : true;
 
     // Choose leading diphoton information and store them and associated ones
@@ -279,8 +277,7 @@ flashggAnalysisTreeMakerStd::analyze( const edm::Event &iEvent, const edm::Event
             dataformat.elecs_EGMCutBasedIDLoose  .emplace_back( it_elec->passLooseId() );
             dataformat.elecs_EGMCutBasedIDMedium .emplace_back( it_elec->passMediumId() );
             dataformat.elecs_EGMCutBasedIDTight  .emplace_back( it_elec->passTightId() );
-            dataformat.elecs_fggPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.2, 0.35, 0.0 ) );
-            dataformat.elecs_tmpPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0.4, 0.4, 0.0 ) );
+            dataformat.elecs_fggPhoVeto          .emplace_back( phoVeto( it_elec, diphoPtr, 0., 0.4, 0. ) );
 
             if ( isMiniAOD_ ) {
                 dataformat.elecs_GsfTrackDz     .emplace_back( it_elec->gsfTrack()->dz( diphoPtr->vtx()->position() ) );

@@ -16,7 +16,7 @@ flashggAnaTreeMakerWithSyst::flashggAnaTreeMakerWithSyst( const edm::InputTag &d
                                                           const edm::ParameterSet &iConfig, edm::ConsumesCollector&& iC):
     diphotonToken_        ( iC.consumes< View<flashgg::DiPhotonCandidate> >     ( diphoton                                            ) ),
     diphotonMVAToken_     ( iC.consumes< View<flashgg::DiPhotonMVAResult> >     ( diphotonMVA                                         ) ),
-    inputTagJets_         ( iConfig.getParameter<vector<edm::InputTag> >( "inputTagJets" )                                              ),
+    inputTagJets_         ( iConfig.getParameter<vector<edm::InputTag> >        ( "inputTagJets"                                      ) ),
     electronToken_        ( iC.consumes< View<flashgg::Electron> >              ( iConfig.getParameter<InputTag> ( "ElectronTag"    ) ) ),
     muonToken_            ( iC.consumes< View<flashgg::Muon> >                  ( iConfig.getParameter<InputTag> ( "MuonTag"        ) ) ),
     metToken_             ( iC.consumes< View<flashgg::Met> >                   ( iConfig.getParameter<InputTag> ( "MetTag"         ) ) ),
@@ -124,17 +124,17 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
     dataformat.Flag_goodVertices                       = passMETFilter("Flag_goodVertices");
     dataformat.Flag_globalSuperTightHalo2016Filter     = passMETFilter("Flag_globalSuperTightHalo2016Filter");
     dataformat.Flag_BadPFMuonFilter                    = passMETFilter("Flag_BadPFMuonFilter");
-    dataformat.Flag_BadChargedCandidateFilter          = passMETFilter("Flag_BadChargedCandidateFilter");
-    dataformat.Flag_ecalBadCalibFilter                 = passMETFilter("Flag_ecalBadCalibFilter");
     dataformat.Flag_eeBadScFilter                      = iEvent.isRealData() ? passMETFilter("Flag_eeBadScFilter") : true;
 
     // Gen information
     if (!iEvent.isRealData()) {
+        float NPu = -999.;
         for( unsigned int PVI = 0; PVI < pileupInfo->size(); ++PVI ) {
-            Int_t pu_bunchcrossing = pileupInfo->ptrAt( PVI )->getBunchCrossing();
-            if( pu_bunchcrossing == 0 ) { dataformat.NPu = pileupInfo->ptrAt( PVI )->getTrueNumInteractions(); break; }
+            int pu_bunchcrossing = pileupInfo->ptrAt( PVI )->getBunchCrossing();
+            if( pu_bunchcrossing == 0 ) { NPu = pileupInfo->ptrAt( PVI )->getTrueNumInteractions(); break; }
         }
 
+        dataformat.NPu = (NPu >= -0.5 && NPu <= 200.5) ? NPu : 0.;
         dataformat.genweight     = genEventInfo->weight();
 
         if ( !isDiphoSystTree ) {
@@ -143,8 +143,8 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
             for (const auto& it_gen : genParticles->ptrs()) {
                 if ( abs(it_gen->pdgId()) > 25) continue;
                 if ( it_gen->status() > 30 ) continue;
-                if ( it_gen->pdgId() == 22      && it_gen->status() == 1 && !(it_gen->pt() > 10 || it_gen->isPromptFinalState())) continue;
-                if ( abs(it_gen->pdgId()) == 11 && it_gen->status() == 1 && !(it_gen->pt() > 3  || it_gen->isPromptFinalState())) continue;
+                //if ( it_gen->pdgId() == 22      && it_gen->status() == 1 && !(it_gen->pt() > 10 || it_gen->isPromptFinalState())) continue;
+                //if ( abs(it_gen->pdgId()) == 11 && it_gen->status() == 1 && !(it_gen->pt() > 3  || it_gen->isPromptFinalState())) continue;
 
                 dataformat.GenParticles_Pt     .emplace_back( it_gen->pt() );
                 dataformat.GenParticles_Eta    .emplace_back( it_gen->eta() );
@@ -185,6 +185,8 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
         dataformat.dipho_leadEta              = diphoPtr->leadingPhoton()->eta();
         dataformat.dipho_leadPhi              = diphoPtr->leadingPhoton()->phi();
         dataformat.dipho_leadE                = diphoPtr->leadingPhoton()->energy();
+        dataformat.dipho_leadEtaSC            = diphoPtr->leadingPhoton()->superCluster()->eta();
+        dataformat.dipho_leadPhiSC            = diphoPtr->leadingPhoton()->superCluster()->phi();
         dataformat.dipho_leadsigEOverE        = diphoPtr->leadingPhoton()->sigEOverE();
         dataformat.dipho_leadR9               = diphoPtr->leadingPhoton()->full5x5_r9();
         dataformat.dipho_leadsieie            = diphoPtr->leadingPhoton()->full5x5_sigmaIetaIeta();
@@ -197,6 +199,8 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
         dataformat.dipho_subleadEta           = diphoPtr->subLeadingPhoton()->eta();
         dataformat.dipho_subleadPhi           = diphoPtr->subLeadingPhoton()->phi();
         dataformat.dipho_subleadE             = diphoPtr->subLeadingPhoton()->energy();
+        dataformat.dipho_subleadEtaSC         = diphoPtr->subLeadingPhoton()->superCluster()->eta();
+        dataformat.dipho_subleadPhiSC         = diphoPtr->subLeadingPhoton()->superCluster()->phi();
         dataformat.dipho_subleadsigEOverE     = diphoPtr->subLeadingPhoton()->sigEOverE();
         dataformat.dipho_subleadR9            = diphoPtr->subLeadingPhoton()->full5x5_r9();
         dataformat.dipho_subleadsieie         = diphoPtr->subLeadingPhoton()->full5x5_sigmaIetaIeta();
@@ -232,9 +236,6 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
         int Nelecs = 0;
         for ( const auto& it_elec : electrons->ptrs() ) {
 
-            double elecEta = fabs( it_elec->superCluster()->eta() );
-            if ( elecEta > 2.5 || ( elecEta > 1.4442 && elecEta < 1.566 ) ) continue;
-
             dataformat.elecs_Charge                    .emplace_back( it_elec->charge() );
             dataformat.elecs_Pt                        .emplace_back( it_elec->pt() );
             dataformat.elecs_Eta                       .emplace_back( it_elec->eta() );
@@ -246,9 +247,8 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
             dataformat.elecs_EGMCutBasedIDLoose        .emplace_back( it_elec->passLooseId() );
             dataformat.elecs_EGMCutBasedIDMedium       .emplace_back( it_elec->passMediumId() );
             dataformat.elecs_EGMCutBasedIDTight        .emplace_back( it_elec->passTightId() );
-            dataformat.elecs_fggPhoVeto                .emplace_back( phoVeto( it_elec, diphoPtr, 0.2, 0.35, 0.0 ) );
-            dataformat.elecs_tmpPhoVeto                .emplace_back( phoVeto( it_elec, diphoPtr, 0.4, 0.4, 0.0 ) );
-
+            dataformat.elecs_passConvVeto              .emplace_back( it_elec->passConversionVeto() );
+            dataformat.elecs_fggPhoVeto                .emplace_back( phoVeto( it_elec, diphoPtr, 0., 0.4, 0. ) );
             dataformat.elecs_EnergyCorrFactor          .emplace_back( it_elec->userFloat("ecalTrkEnergyPostCorr") / it_elec->energy() );
             dataformat.elecs_EnergyPostCorrErr         .emplace_back( it_elec->userFloat("ecalTrkEnergyErrPostCorr") );
             if ( storeSyst_ && !isDiphoSystTree ) {
@@ -285,14 +285,22 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
 
         // Muon information
         // ---------------------------------------------------------------------------------------------------------
-        double Nmuons = 0;
+        int Nmuons = 0;
         for ( const auto& it_muon : muons->ptrs() ) {
             if ( !it_muon->passed(reco::Muon::CutBasedIdLoose) ) continue;
             if ( fabs( it_muon->eta() ) > 2.4 ) continue;
 
-            float dRPho1Muon = reco::deltaR( it_muon->eta(), it_muon->phi(), dataformat.dipho_leadEta, dataformat.dipho_leadPhi );
-            float dRPho2Muon = reco::deltaR( it_muon->eta(), it_muon->phi(), dataformat.dipho_subleadEta, dataformat.dipho_subleadPhi );
-            if ( dRPho1Muon < 0.2 || dRPho2Muon < 0.2 ) continue;
+            int vtxInd = 0;
+            float dzmin = 999.;
+            const std::vector<edm::Ptr<reco::Vertex> > vertexPointers = primaryVertices->ptrs();
+            for( unsigned int ivtx = 0; ivtx < vertexPointers.size(); ivtx++ ) {
+                edm::Ptr<reco::Vertex> vtx = vertexPointers[ivtx];
+                if( !it_muon->innerTrack() ) continue; 
+                if( fabs( it_muon->innerTrack()->vz() - vtx->position().z() ) < dzmin ) {                    
+                    dzmin = fabs( it_muon->innerTrack()->vz() - vtx->position().z() );
+                    vtxInd = ivtx;
+                }
+            }
 
             dataformat.muons_Charge                  .emplace_back( it_muon->charge() );
             dataformat.muons_MuonType                .emplace_back( it_muon->type() );
@@ -304,6 +312,7 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
             dataformat.muons_BestTrackDxy            .emplace_back( it_muon->muonBestTrack()->dxy( diphoPtr->vtx()->position() ) );
             dataformat.muons_CutBasedIdMedium        .emplace_back( it_muon->passed(reco::Muon::CutBasedIdMedium) );
             dataformat.muons_CutBasedIdTight         .emplace_back( muon::isTightMuon( *it_muon, *(diphoPtr->vtx()) ) );
+            dataformat.muons_CutBasedIdTight_bestVtx .emplace_back( muon::isTightMuon( *it_muon, *(vertexPointers[vtxInd]) ) );
             dataformat.muons_PFIsoDeltaBetaCorrR04   .emplace_back( it_muon->fggPFIsoSumRelR04() );
             dataformat.muons_TrackerBasedIsoR03      .emplace_back( it_muon->fggTrkIsoSumRelR03() );
 
@@ -337,10 +346,6 @@ flashggAnaTreeMakerWithSyst::Analyze( const edm::Event &iEvent, const edm::Event
         for ( const auto& it_jet : Jets[jetCollectionIndex]->ptrs() ) {
             if ( !it_jet->passesJetID(flashgg::Tight2017) ) continue;
             if ( fabs( it_jet->eta() ) > 4.7 ) { continue; }
-
-            float dRPho1Jet = reco::deltaR( it_jet->eta(), it_jet->phi(), dataformat.dipho_leadEta, dataformat.dipho_leadPhi );
-            float dRPho2Jet = reco::deltaR( it_jet->eta(), it_jet->phi(), dataformat.dipho_subleadEta, dataformat.dipho_subleadPhi );
-            if ( dRPho1Jet < 0.4 || dRPho2Jet < 0.4 ) continue;
 
             dataformat.jets_Pt                            .emplace_back( it_jet->pt() );
             dataformat.jets_Eta                           .emplace_back( it_jet->eta() );
