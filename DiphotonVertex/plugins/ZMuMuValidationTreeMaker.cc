@@ -273,8 +273,8 @@ ZMuMuValidationTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSet
 
             dimuonInfo.muon1_pt  = pat_muon1->pt();
             dimuonInfo.muon1_eta = pat_muon1->eta();
-            dimuonInfo.muon2_pt  = pat_muon1->pt();
-            dimuonInfo.muon2_eta = pat_muon1->eta();
+            dimuonInfo.muon2_pt  = pat_muon2->pt();
+            dimuonInfo.muon2_eta = pat_muon2->eta();
 
             //Selected Vertex
             vector<float> infoWithMu;
