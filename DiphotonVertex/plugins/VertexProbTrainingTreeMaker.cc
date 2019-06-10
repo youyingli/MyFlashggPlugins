@@ -24,10 +24,6 @@
 
 // define the structures used to create tree branches and fill the trees
 
-struct GlobalInfo {
-    int nPu; 
-};
-
 struct DiPhoInfo {
 
     int ndipho               ;
@@ -108,7 +104,6 @@ private:
     TTree *GlobalTree;
     TTree *DiphoTree;
 
-    GlobalInfo globalInfo;
     DiPhoInfo diphoInfo;
 
 };
@@ -176,16 +171,12 @@ VertexProbTrainingTreeMaker::analyze( const edm::Event &iEvent, const edm::Event
     for( unsigned int PVI = 0; PVI < PileupInfo->size(); ++PVI ) {
         Int_t pu_bunchcrossing = PileupInfo->ptrAt( PVI )->getBunchCrossing();
         if( pu_bunchcrossing == 0 ) {
-            globalInfo.nPu = PileupInfo->ptrAt( PVI )->getTrueNumInteractions();
+            diphoInfo.nPu = PileupInfo->ptrAt( PVI )->getTrueNumInteractions();
             break;
         }
     }
-    GlobalTree->Fill();
 
-    double BSsigmaz = 0;
-    if( recoBeamSpotHandle.isValid() ) {
-        BSsigmaz = recoBeamSpotHandle->sigmaZ();
-    }
+    if( recoBeamSpotHandle.isValid() ) diphoInfo.BSsigmaz = recoBeamSpotHandle->sigmaZ();
 
     for( size_t idipho = 0; idipho < diphotonPointers.size(); idipho++ ) {
 
@@ -219,13 +210,10 @@ VertexProbTrainingTreeMaker::analyze( const edm::Event &iEvent, const edm::Event
             diphoInfo.VtxProb = diphoPtr->vtxProbMVA();
         }
 
-        diphoInfo.nPu = globalInfo.nPu;
         diphoInfo.nvertex = pvPointers.size();
         diphoInfo.genvz = diphoPtr->genPV().z();
-        diphoInfo.DZtrue = fabs( diphoPtr->vtx()->position().z() - diphoInfo.genvz );
-        diphoInfo.BSsigmaz = BSsigmaz;
-        diphoInfo.genWeight = genEventInfo->weight() > 0. ? 1. : -1.;
-
+        diphoInfo.DZtrue = diphoPtr->vtx()->position().z() - diphoInfo.genvz;
+        diphoInfo.genWeight = genEventInfo->weight();
 
         DiphoTree->Fill();
 
@@ -236,9 +224,6 @@ VertexProbTrainingTreeMaker::analyze( const edm::Event &iEvent, const edm::Event
 void
 VertexProbTrainingTreeMaker::beginJob()
 {
-    GlobalTree = fs_->make<TTree>( "GlobalTree", "" );
-    GlobalTree->Branch( "nPu"                 , &globalInfo.nPu               , "nPu/I"                );
-
     DiphoTree = fs_->make<TTree>( "DiphoTree", "per-diphoton tree" );
     DiphoTree->Branch( "nPu"                  , &diphoInfo.nPu                , "nPu/I"                );
     DiphoTree->Branch( "ndipho"               , &diphoInfo.ndipho             , "ndipho/I"             );
@@ -279,8 +264,6 @@ VertexProbTrainingTreeMaker::endJob()
 void
 VertexProbTrainingTreeMaker::initEventStructure()
 {
-    globalInfo.nPu                = -999;
-
     diphoInfo.nPu                 = -999; 
     diphoInfo.ndipho              = -999; 
     diphoInfo.dipho_index         = -999; 

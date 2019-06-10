@@ -45,8 +45,6 @@ struct BackgroundInfo {
     int nvertex;
     int ndipho;
     int dipho_index;
-    int isloosephoton1;
-    int isloosephoton2;
 
     float LogSumPt2;
     float PtBal;
@@ -79,8 +77,6 @@ public:
 private:
 
     edm::Service<TFileService> fs_;
-
-
 
     virtual void beginJob() override;
     virtual void analyze( const edm::Event &, const edm::EventSetup & ) override;
@@ -176,8 +172,8 @@ VertexIDTrainingTreeMaker::analyze( const edm::Event &iEvent, const edm::EventSe
 
         sigInfo.dipho_index = idipho;
         bkgInfo.dipho_index = idipho;
-        sigInfo.genweight = genEventInfo->weight() > 0. ? 1. : -1.;
-        bkgInfo.genweight = genEventInfo->weight() > 0. ? 1. : -1.;
+        sigInfo.genweight = genEventInfo->weight();
+        bkgInfo.genweight = genEventInfo->weight();
 
         // get true vertex index:
 
@@ -255,8 +251,6 @@ VertexIDTrainingTreeMaker::beginJob()
     backgroundTree->Branch( "ndipho"           , &bkgInfo.ndipho          , "ndipho/I"          );
     backgroundTree->Branch( "genweight"        , &bkgInfo.genweight       , "genweight/F"       );
     backgroundTree->Branch( "dipho_index"      , &bkgInfo.dipho_index     , "dipho_index/I"     );
-    backgroundTree->Branch( "isloosephoton1"   , &bkgInfo.isloosephoton1  , "isloosephoton1/I"  );
-    backgroundTree->Branch( "isloosephoton2"   , &bkgInfo.isloosephoton2  , "isloosephoton2/I"  );
     backgroundTree->Branch( "dipho_mass"       , &bkgInfo.dipho_mass      , "dipho_mass/F"      );
     backgroundTree->Branch( "logsumpt2"        , &bkgInfo.LogSumPt2       , "logsumpt2/F"       );
     backgroundTree->Branch( "ptbal"            , &bkgInfo.PtBal           , "ptbal/F"           );
