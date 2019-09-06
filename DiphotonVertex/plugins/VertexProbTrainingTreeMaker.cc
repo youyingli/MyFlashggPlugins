@@ -23,6 +23,11 @@
 // **********************************************************************
 
 // define the structures used to create tree branches and fill the trees
+// test
+struct GlobalInfo {
+    float weight;
+    int nPU;
+};
 
 struct DiPhoInfo {
 
@@ -105,6 +110,7 @@ private:
     TTree *DiphoTree;
 
     DiPhoInfo diphoInfo;
+    GlobalInfo globalInfo;
 
 };
 
@@ -177,6 +183,10 @@ VertexProbTrainingTreeMaker::analyze( const edm::Event &iEvent, const edm::Event
     }
 
     if( recoBeamSpotHandle.isValid() ) diphoInfo.BSsigmaz = recoBeamSpotHandle->sigmaZ();
+    cout << genEventInfo->weight() << endl;
+    globalInfo.weight = genEventInfo->weight();
+    globalInfo.nPU    = diphoInfo.nPu;
+    GlobalTree->Fill();
 
     for( size_t idipho = 0; idipho < diphotonPointers.size(); idipho++ ) {
 
@@ -224,6 +234,10 @@ VertexProbTrainingTreeMaker::analyze( const edm::Event &iEvent, const edm::Event
 void
 VertexProbTrainingTreeMaker::beginJob()
 {
+    GlobalTree = fs_->make<TTree>( "GlobalTree", "per-diphoton tree" );
+    GlobalTree->Branch( "weight"              , &globalInfo.weight            , "weight/F"          );
+    GlobalTree->Branch( "nPU"                 , &globalInfo.nPU               , "nPU/I"             );
+
     DiphoTree = fs_->make<TTree>( "DiphoTree", "per-diphoton tree" );
     DiphoTree->Branch( "nPu"                  , &diphoInfo.nPu                , "nPu/I"                );
     DiphoTree->Branch( "ndipho"               , &diphoInfo.ndipho             , "ndipho/I"             );
@@ -264,6 +278,8 @@ VertexProbTrainingTreeMaker::endJob()
 void
 VertexProbTrainingTreeMaker::initEventStructure()
 {
+    globalInfo.weight             = 1.;
+    globalInfo.nPU                = 1;
     diphoInfo.nPu                 = -999; 
     diphoInfo.ndipho              = -999; 
     diphoInfo.dipho_index         = -999; 

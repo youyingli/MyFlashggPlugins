@@ -160,21 +160,27 @@ namespace flashgg {
             if ( photon->isEB() ){
                 if ( photon->hadronicOverEm() > minPhotEBHoE_ )  continue;
                 if ( photon->full5x5_sigmaIetaIeta() > minPhotEBsietaieta_) continue;
-                double photChargedHadronIso_ = max(photon->chargedHadronIso() - rho_*photIsolnEAreaChgHad_[iphotEA_], 0.);
+                //double photChargedHadronIso_ = max(photon->chargedHadronIso() - rho_*photIsolnEAreaChgHad_[iphotEA_], 0.);
+                double photChargedHadronIso_ = max(photon->userFloat("phoChargedIsolation") - rho_*photIsolnEAreaChgHad_[iphotEA_], 0.);
                 if ( photChargedHadronIso_ > PhotEBChgIsoParams_[0] ) continue;
-                double photNeutralHadronIso_ = max(photon->neutralHadronIso() - rho_*photIsolnEAreaNeuHad_[iphotEA_], 0.);
+                //double photNeutralHadronIso_ = max(photon->neutralHadronIso() - rho_*photIsolnEAreaNeuHad_[iphotEA_], 0.);
+                double photNeutralHadronIso_ = max(photon->userFloat("phoNeutralHadronIsolation") - rho_*photIsolnEAreaNeuHad_[iphotEA_], 0.);
                 if ( photNeutralHadronIso_ > PhotEBNeuIsoParams_[0] + PhotEBNeuIsoParams_[1]*photPt_ + PhotEBNeuIsoParams_[2]*photPt_*photPt_ ) continue;
-                double photPhotonIso_ = max(photon->photonIso() - rho_*photIsolnEAreaPhot_[iphotEA_], 0.);
+                //double photPhotonIso_ = max(photon->photonIso() - rho_*photIsolnEAreaPhot_[iphotEA_], 0.);
+                double photPhotonIso_ = max(photon->userFloat("phoPhotonIsolation") - rho_*photIsolnEAreaPhot_[iphotEA_], 0.);
                 if ( photPhotonIso_ > PhotEBPhoIsoParams_[0] + PhotEBPhoIsoParams_[1]*photPt_) continue;
             }
             if ( photon->isEE() ){
                 if ( photon->hadronicOverEm() > minPhotEEHoE_ )  continue;
                 if ( photon->full5x5_sigmaIetaIeta() > minPhotEEsietaieta_ ) continue;
-                double photChargedHadronIso_ = max(photon->chargedHadronIso() - rho_*photIsolnEAreaChgHad_[iphotEA_], 0.);
+                //double photChargedHadronIso_ = max(photon->chargedHadronIso() - rho_*photIsolnEAreaChgHad_[iphotEA_], 0.);
+                double photChargedHadronIso_ = max(photon->userFloat("phoChargedIsolation") - rho_*photIsolnEAreaChgHad_[iphotEA_], 0.);
                 if ( photChargedHadronIso_ > PhotEEChgIsoParams_[0] ) continue;
-                double photNeutralHadronIso_ = max(photon->neutralHadronIso() - rho_*photIsolnEAreaNeuHad_[iphotEA_], 0.);
+                //double photNeutralHadronIso_ = max(photon->neutralHadronIso() - rho_*photIsolnEAreaNeuHad_[iphotEA_], 0.);
+                double photNeutralHadronIso_ = max(photon->userFloat("phoNeutralHadronIsolation") - rho_*photIsolnEAreaNeuHad_[iphotEA_], 0.);
                 if ( photNeutralHadronIso_ > PhotEENeuIsoParams_[0] + PhotEENeuIsoParams_[1]*photPt_ + PhotEENeuIsoParams_[2]*photPt_*photPt_ ) continue;
-                double photPhotonIso_ = max(photon->photonIso() - rho_*photIsolnEAreaPhot_[iphotEA_], 0.);
+                //double photPhotonIso_ = max(photon->photonIso() - rho_*photIsolnEAreaPhot_[iphotEA_], 0.);
+                double photPhotonIso_ = max(photon->userFloat("phoPhotonIsolation") - rho_*photIsolnEAreaPhot_[iphotEA_], 0.);
                 if ( photPhotonIso_ > PhotEEPhoIsoParams_[0] + PhotEEPhoIsoParams_[1]*photPt_) continue;
             }
                         
